@@ -2,7 +2,63 @@
 #define F_CPU 1000000UL // 1 MHz internal clock speed
 #endif
 
+#include <avr/io.h>
+#include <stdio.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+#include "nRF24L01.h"
+void read_adc();
 
+// Using http://gizmosnack.blogspot.com/2013/04/tutorial-nrf24l01-and-avr.html
+// as my source for the SPI communication code
+
+//The SPI data register is a read/write register used for data transfer between the register file and the SPI shift register. Writing
+//to the register initiates data transmission. Reading the register causes the shift register receive buffer to be read.
+
+//When a serial transfer is complete, the SPIF flag is set. An interrupt is generated if SPIE in SPCR is set and global interrupts
+//are enabled. If SS is an input and is driven low when the SPI is in master mode, this will also set the SPIF flag. SPIF is
+//cleared by hardware when executing the corresponding interrupt handling vector. Alternatively, the SPIF bit is cleared by
+//first reading the SPI status register with SPIF set, then accessing the SPI data register (SPDR).
+
+char SPI_write_byte(unsigned char uns_char_data)
+{
+   SPDR = uns_char_data; // SPI Data Register is being written to; initiates data transmission between the register file and the SPI shift register
+   while(!(SPSR & (1 << SPIF))); // allow for the data transmission to complete (wait for SPIF to be set)
+                                 // SPIF is set when when a serial transfer is complete
+   return SPDR; // SPDR returns data from the NRF24L01
+}
+
+uint8_t get_reg_contents(uint8_t registerl)
+{  // leaving 10us between commands because the NRF accepts 1 byte every 10 us
+	_delay_us(10);   // give plenty of time for other commands to complete
+	PORTB &= ~(1 << PORTB2); // set PB2 (CSN) low; then the NRF24 will start listening for commands
+	_delay_us(10);
+	SPI_write_byte(R_REGISTER + registerl); // stores (R_REGISTER + register in the SPDR register)
+	                                      // SPDR will be read by the NRF24 and the next time the AVR writes to the SPDR (that is, initiates a data transmission, the NRF will return
+	                                      // the contents of "register" (since it was asked to provide information via the "R_REGISTER" command
+	_delay_us(10);
+	registerl = SPI_write_byte(NOP); // put some random junk in SPDR, and it returns us what we asked for previously
+	_delay_us(10);
+	PORTB |= (1 << PORTB2);   // CSN set high again, the NRF24 will not be listening for command
+	return registerl;
+}
+
+void write_to_NRF(uint8_t registerl, uint8_t information)
+{
+	_delay_us(10) // give that 10 microsecond delay.
+	PORTB &= ~(1 << PORTB2) // set CSN (PB2) low so that the NRF listens for commands/data
+	_delay_us(10);
+	SPI_write_byte(W_REGISTER + registerl); // tell the NRF24 we want to write to one of its registers (register "registerl", specifically)
+	_delay_us(10);
+	SPI_write_byte(information); // write information to register registerl
+	_delay_us(10);
+	PORTB |= (1 << PORTB2); // CSN high again, NRF24 is left alone now
+}
+
+uint8_t * array_write_toNRF(uint8_t RorW, uint8_t registerl, uint8_t data_array, uint8_t no_of_entries)
+{
+  // Coming shortly!
+}
 //Atmega88A default fuses //low fuse = 0x62 //high fuse = 0xdf //extended action = 0xf9
 
 // Preparing for PWM code:
@@ -11,18 +67,6 @@
 // It is connected to Timer/Counter 1 (a 16-bit timer!)
 // Will have to work with the following registers:
 
-// TCCR1A
-// TCCR1B
-// TCCR1C
-// DDRB (have to make sure PB1 is set for output!)
-// OCR1AH and OCR1AL
-
-#include <avr/io.h>
-#include <stdio.h>
-#include <util/delay.h>
-#include <avr/interrupt.h>
-#include "nRF24L01.h"
-void read_adc();
 
 void main(void)
 {                                                             //76543210 (pin numbering)
@@ -68,19 +112,9 @@ void read_adc()
 {
     uint8_t ADCL_val = ADCL;          // read low (then high) ADC data bytes
     uint8_t ADCH_val = ADCH;
-    uint16_t ADC_cum = (ADCL_val | (ADCH_val << 8));
-    //if (ADC_cum > 20){
-    //OCR1AH = 0x03;           // write high (then low) PWM data
-   // OCR1AL = 0xFF;
-   // _delay_ms(1000);
-  //  if (ADC_cum > 280)
-   // {
+    //uint16_t ADC_cum = (ADCL_val | (ADCH_val << 8));
     OCR1AH = ADCH_val;
     OCR1AL = ADCL_val;
-  //  _delay_ms(1000);
-   // }
-    	//PORTD |= (1 << PORTD5);
-    	//PORTB |= (1 << PORTB1);
 }
 
 ISR(PCINT0_vect)
