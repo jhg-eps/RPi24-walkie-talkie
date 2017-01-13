@@ -20,45 +20,6 @@ void read_adc();
 //cleared by hardware when executing the corresponding interrupt handling vector. Alternatively, the SPIF bit is cleared by
 //first reading the SPI status register with SPIF set, then accessing the SPI data register (SPDR).
 
-char SPI_write_byte(unsigned char uns_char_data)
-{
-   SPDR = uns_char_data; // SPI Data Register is being written to; initiates data transmission between the register file and the SPI shift register
-   while(!(SPSR & (1 << SPIF))); // allow for the data transmission to complete (wait for SPIF to be set)
-                                 // SPIF is set when when a serial transfer is complete
-   return SPDR; // SPDR returns data from the NRF24L01
-}
-
-uint8_t get_reg_contents(uint8_t registerl)
-{  // leaving 10us between commands because the NRF accepts 1 byte every 10 us
-	_delay_us(10);   // give plenty of time for other commands to complete
-	PORTB &= ~(1 << PORTB2); // set PB2 (CSN) low; then the NRF24 will start listening for commands
-	_delay_us(10);
-	SPI_write_byte(R_REGISTER + registerl); // stores (R_REGISTER + register in the SPDR register)
-	                                      // SPDR will be read by the NRF24 and the next time the AVR writes to the SPDR (that is, initiates a data transmission, the NRF will return
-	                                      // the contents of "register" (since it was asked to provide information via the "R_REGISTER" command
-	_delay_us(10);
-	registerl = SPI_write_byte(NOP); // put some random junk in SPDR, and it returns us what we asked for previously
-	_delay_us(10);
-	PORTB |= (1 << PORTB2);   // CSN set high again, the NRF24 will not be listening for command
-	return registerl;
-}
-
-void write_to_NRF(uint8_t registerl, uint8_t information)
-{
-	_delay_us(10) // give that 10 microsecond delay.
-	PORTB &= ~(1 << PORTB2) // set CSN (PB2) low so that the NRF listens for commands/data
-	_delay_us(10);
-	SPI_write_byte(W_REGISTER + registerl); // tell the NRF24 we want to write to one of its registers (register "registerl", specifically)
-	_delay_us(10);
-	SPI_write_byte(information); // write information to register registerl
-	_delay_us(10);
-	PORTB |= (1 << PORTB2); // CSN high again, NRF24 is left alone now
-}
-
-uint8_t * array_write_toNRF(uint8_t RorW, uint8_t registerl, uint8_t data_array, uint8_t no_of_entries)
-{
-  // Coming shortly!
-}
 //Atmega88A default fuses //low fuse = 0x62 //high fuse = 0xdf //extended action = 0xf9
 
 // Preparing for PWM code:
@@ -89,12 +50,12 @@ void main(void)
    // END SPI INIT SECTION
    PORTB |= (1 << PORTB0);   // PB0 an input with pull-up enabled                            PORT B is reading from the PTT button
    PORTB |= (1<< PORTB1);
-   EICRA |= 0x01;                           // external interrupt request triggered on voltage level change (no rising or falling edge consideration)
 
-   PCICR |= (1 << PCIE0);            // set PCIE0 to enable PCMSK0 scan
+   sei();            // set the Global Interrupt Enable bit
+   EICRA |= 0x01;                           // external interrupt request triggered on voltage level change (no rising or falling edge consideration)
+   PCICR |= (1 << PCIE2);            // set PCIE0 to enable PCMSK0 scan
                                                                // Flag is cleared when the interrupt routine is executed
-   PCMSK0 |= (1 << PCINT0);   // set PCINT0 to trigger an interrupt on state change
-   sei();                                                // set the Global Interrupt Enable bit
+   PCMSK2 |= (1 << PCINT22);   // set PCINT0 to trigger an interrupt on state change
 
   ADCSRA |= ((1 << ADPS1) | (1 << ADPS0) | (1 << ADATE));    // set the ADC clock prescaler to 4, enable ADC auto-triggering (sampling rate of approximate 20 kSP/s)
   ADCSRA |= (1 << ADIE);                            // enable ADC_vect interrupt to fire off when A2D conversion occurs

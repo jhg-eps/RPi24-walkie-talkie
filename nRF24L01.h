@@ -1,22 +1,27 @@
 /*
     Copyright (c) 2007 Stefan Engelke <mbox@stefanengelke.de>
-    Permission is hereby granted, free of charge, to any person
-    obtaining a copy of this software and associated documentation
-    files (the "Software"), to deal in the Software without
-    restriction, including without limitation the rights to use, copy,
-    modify, merge, publish, distribute, sublicense, and/or sell copies
-    of the Software, and to permit persons to whom the Software is
+
+    Permission is hereby granted, free of charge, to any person 
+    obtaining a copy of this software and associated documentation 
+    files (the "Software"), to deal in the Software without 
+    restriction, including without limitation the rights to use, copy, 
+    modify, merge, publish, distribute, sublicense, and/or sell copies 
+    of the Software, and to permit persons to whom the Software is 
     furnished to do so, subject to the following conditions:
-    The above copyright notice and this permission notice shall be
+
+    The above copyright notice and this permission notice shall be 
     included in all copies or substantial portions of the Software.
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
     DEALINGS IN THE SOFTWARE.
+
+    $Id$
 */
 
 /* Memory Map */
@@ -44,8 +49,6 @@
 #define RX_PW_P4    0x15
 #define RX_PW_P5    0x16
 #define FIFO_STATUS 0x17
-#define DYNPD	    0x1C
-#define FEATURE	    0x1D
 
 /* Bit Mnemonics */
 #define MASK_RX_DR  6
@@ -72,7 +75,8 @@
 #define ARC         0
 #define PLL_LOCK    4
 #define RF_DR       3
-#define RF_PWR      6
+#define RF_PWR      1
+#define LNA_HCURR   0        
 #define RX_DR       6
 #define TX_DS       5
 #define MAX_RT      4
@@ -85,50 +89,14 @@
 #define TX_EMPTY    4
 #define RX_FULL     1
 #define RX_EMPTY    0
-#define DPL_P5	    5
-#define DPL_P4	    4
-#define DPL_P3	    3
-#define DPL_P2	    2
-#define DPL_P1	    1
-#define DPL_P0	    0
-#define EN_DPL	    2
-#define EN_ACK_PAY  1
-#define EN_DYN_ACK  0
 
 /* Instruction Mnemonics */
 #define R_REGISTER    0x00
 #define W_REGISTER    0x20
 #define REGISTER_MASK 0x1F
-#define ACTIVATE      0x50
-#define R_RX_PL_WID   0x60
 #define R_RX_PAYLOAD  0x61
 #define W_TX_PAYLOAD  0xA0
-#define W_ACK_PAYLOAD 0xA8
 #define FLUSH_TX      0xE1
 #define FLUSH_RX      0xE2
 #define REUSE_TX_PL   0xE3
 #define NOP           0xFF
-
-/* Non-P omissions */
-#define LNA_HCURR   0
-
-/* P model memory Map */
-#define RPD         0x09
-
-/* P model bit Mnemonics */
-#define RF_DR_LOW   5
-#define RF_DR_HIGH  3
-#define RF_PWR_LOW  1
-#define RF_PWR_HIGH 2
-
-/* Bit-setting Macros */
-
-#define BIT(x) (1 << (x))
-#define SETBITS(x,y) ((x) |= (y))
-#define CLEARBITS(x,y) ((x) &= (~(y)))
-#define SETBIT(x,y) SETBITS((x), (BIT((y))))
-#define CLEARBIT(x,y) CLEARBITS((x), BIT((y))))
-
-/* Read and Write Macro defines */
-#define W 1
-#define R 0
