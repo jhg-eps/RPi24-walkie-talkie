@@ -1,0 +1,20 @@
+Addressing Plan
+
+ Created on: Jan 12, 2017
+     Author: Joseph Garcia
+     
+There will be three intercom units, one on each floor of the house(A on the 2nd Floor, B on the 1st Floor
+, and C in the Basement)
+
+Here is the Addressing Plan (Pipe 2 is an extra pipe):
+|------------------------------------------------------------------------|
+|            | Unit A           |     Unit B       |       Unit C        |
+|------------------------------------------------------------------------|
+|Pipe 0 (RX) | 0xE7D3F03577     | 0x89B4852D52     | 0x771D9E6F77        |
+|------------------------------------------------------------------------|
+|Pipe 1 (RX) | 0xA6C0A956C6     | 0x6D025403EB     | 0xF62481D485        |
+|------------------------------------------------------------------------|
+|Pipe 2 (RX) | 0xA6C0A95667     | 0x6D025403D1     | 0xF62481D401        |                 
+|------------------------------------------------------------------------|
+
+
