@@ -50,7 +50,7 @@ void main(void)
    // END SPI INIT SECTION
    PORTB |= (1 << PORTB0);   // PB0 an input with pull-up enabled                            PORT B is reading from the PTT button
    PORTB |= (1<< PORTB1);
-
+	// adding a comment!!!
    sei();            // set the Global Interrupt Enable bit
    EICRA |= 0x01;                           // external interrupt request triggered on voltage level change (no rising or falling edge consideration)
    PCICR |= (1 << PCIE2);            // set PCIE0 to enable PCMSK0 scan
