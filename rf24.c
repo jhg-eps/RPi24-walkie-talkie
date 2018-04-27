@@ -295,7 +295,9 @@ uint8_t rf24_getAddressWidth(){
 
 void setTXAddress(uint8_t *addr) {
   memcpy(transmit_address, addr, addr_width);
+  printf("setTXAddress: 0x%02x%02x%02x%02x%02x", addr[0], addr[1], addr[2], addr[3], addr[4]);
   write_register_bytes(TX_ADDR, reverse_address(transmit_address), addr_width);
+  printf("setTXAddress (part 2): 0x%02x%02x%02x%02x%02x", transmit_address[0], transmit_address[1], transmit_address[2], transmit_address[3], transmit_address[4]);
 }
 
 void rf24_setRXAddressOnPipe(uint8_t *address, uint8_t pipe) {
@@ -482,16 +484,12 @@ uint8_t rf24_init_radio(char *spi_device, uint32_t spi_speed, uint8_t cepin) {
 
   //printf("%s speed %d cepin %d
   spi = spi_init();
-  printf("just did the spi init");
   //if (spi == NULL) return 0;
-  printf("yeettron");
   setDefaults();
   stats = stats_create(1);
   stats_start_monitor(stats);
-  printf("yeetrron7");
   pthread_create(&int_thread, NULL, radio_isr_thread, NULL);
   packets = tsq_create(PACKET_BUFFER_SIZE);
-  printf("just made the packets");
   return 1;
 }
 

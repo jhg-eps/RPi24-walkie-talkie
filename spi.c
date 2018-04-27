@@ -20,8 +20,8 @@ typedef struct spi_state {
 } SPIState;
 
 SPIState * spi_init() {
-	int setToRoot = seteuid(0); // make sure euid is set to root's UID
-	printf("root was successful: %d", setToRoot); // 0 if successful
+	seteuid(0); // make sure euid is set to root's UID
+	//printf("root was successful: %d", setToRoot); // 0 if successful
 	if (!bcm2835_init()) // Initialize the BCM2835 SPI library
 		perror("Unable to initialize the BCM2835 library");
 	bcm2835_spi_begin();

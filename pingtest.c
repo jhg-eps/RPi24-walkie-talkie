@@ -88,7 +88,6 @@ void run_test_suite(Result *r) {
 }
 
 void setup(void) {
-    printf("entering the the setup routine");
     Result r = {.pass = 0, .fail = 0};
     uint8_t status = rf24_init_radio("/dev/spidev0.0", 6000000, 25);
     if (status == 0) 
@@ -96,8 +95,6 @@ void setup(void) {
 	exit(-1);
 	printf("We have failure!!!");
     }
-    uint8_t result = read_register(CONFIG);
-    printf("In Setup, the result of initial CONFIG value is %d", result);
     run_test_suite(&r);
     rf24_resetcfg();
     rf24_enableDynamicPayloads();
@@ -118,7 +115,6 @@ void loop(void) {
 }
  
 int main() {
-	printf("hello world");
     setup();
 		//uint8_t result1 = read_register(STATUS);
 		//printf("\nresult1 in pingtest for STATUS is %x\n", result1);
