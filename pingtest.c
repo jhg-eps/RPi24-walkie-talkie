@@ -120,8 +120,8 @@ void loop(void) {
 int main() {
 	printf("hello world");
     setup();
-		uint8_t result1 = read_register(STATUS);
-		printf("\nresult1 in pingtest for STATUS is %x\n", result1);
+		//uint8_t result1 = read_register(STATUS);
+		//printf("\nresult1 in pingtest for STATUS is %x\n", result1);
 
 //    while(1) {
 //        loop();

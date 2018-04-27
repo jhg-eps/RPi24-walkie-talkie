@@ -113,6 +113,7 @@ void *radio_isr_thread();
 /***********************/
 /* Register functions  */
 /***********************/
+#if 0
 uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
   uint8_t status;
   spi_enable(spi);
@@ -121,6 +122,31 @@ uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
   spi_disable(spi);
   return status;
 }
+#endif
+uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
+  uint8_t status = 0;
+  uint8_t commandbyte = R_REGISTER | (REGISTER_MASK & reg); 
+  uint8_t k = 0; 
+  uint8_t j = 0;
+  
+  char *tbuf = (char*)malloc((size_t)len + (size_t)1); 
+  tbuf[0] = (char)commandbyte;
+  for (k = 1; k < (len + 1); k++)
+	tbuf[k] = 'F';
+  
+  char rbuf[] = {'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F'}; 
+  
+  spi_enable(spi);
+  bcm2835_spi_transfernb(tbuf, rbuf, len);
+  spi_disable(spi);
+  
+  for (j = 1; j < (len + 1); j++)
+	buf[j] = (uint8_t)rbuf[j];
+	
+  free(tbuf);
+  return status;
+}
+
 
 uint8_t read_register(uint8_t reg) {
   uint8_t result = 1;//, result1, result2;
