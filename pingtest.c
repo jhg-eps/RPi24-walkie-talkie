@@ -9,7 +9,7 @@
 uint8_t address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};
 /* 32 byte character array is max payload */
 char receivePayload[32];
-uint8_t receiveAddr[5];/* = {0xB7, 0xB7, 0xB7, 0xB7, 0xD5};*/
+uint8_t receiveAddr[5] = {0xB7, 0xB7, 0xB7, 0xB7, 0xD5};
 uint8_t len;
 
 typedef struct result {
@@ -118,6 +118,12 @@ int main() {
     setup();
     //uint8_t result1 = read_register(CONFIG);
 	//printf("\nresult1 in pingtest for CONFIG is %x\n", result1);
+	
+	//uint8_t receiveAddr[5];/* = {0xB7, 0xB7, 0xB7, 0xB7, 0xD5};*/
+	
+	uint8_t* result = reverse_address(receiveAddr);
+	write_register_bytes(RX_ADDR_P0, reverse_address(receiveAddr), 5);
+	print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
 	
 	//write_register(CONFIG, read_register(CONFIG) | MASK_RX_DR);
 

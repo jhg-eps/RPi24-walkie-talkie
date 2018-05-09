@@ -137,11 +137,11 @@ uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
   char rbuf[] = {'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F'}; 
   
   spi_enable(spi);
-  bcm2835_spi_transfernb(tbuf, rbuf, len);
+  bcm2835_spi_transfernb(tbuf, rbuf, len + 1);
   spi_disable(spi);
   
   for (j = 1; j < (len + 1); j++)
-	buf[j] = (uint8_t)rbuf[j];
+	buf[j - 1] = (uint8_t)rbuf[j];
 	
   free(tbuf);
   return status;
@@ -165,11 +165,21 @@ uint8_t read_register(uint8_t reg) {
 
 uint8_t write_register_bytes(uint8_t reg, const uint8_t* buf, uint8_t len) {
   /* RPi, x86, nRF25L01(+) are all little-endian so no worry about hton/ntoh*/
-  uint8_t status;
+  uint8_t status = 0;
+  uint8_t commandbyte = W_REGISTER | (REGISTER_MASK & reg);
+  int k = 0;
+  
+  char *tbuf = (char*)malloc((size_t)len + (size_t)1); 
+  tbuf[0] = (char)commandbyte;
+  for (k = 1; k < (len + 1); k++)
+	tbuf[k] = buf[k - 1];
+     
   spi_enable(spi);
-  spi_transfer(W_REGISTER | (REGISTER_MASK & reg), &status);
-  while (len--) spi_transfer(*buf++, NULL);
+  bcm2835_spi_writenb(tbuf, len + 1); // transfer the commandbyte plus the address bytes.
   spi_disable(spi);
+  
+  free(tbuf);
+  
   return status;
 }
 
@@ -727,8 +737,12 @@ void print_address_register(char* name, uint8_t reg, uint8_t qty) {
     uint8_t buffer[5];
     read_register_bytes(reg++, buffer, sizeof(buffer));
     printf(" 0x");
-    uint8_t* bufptr = buffer + sizeof(buffer);
-    while(--bufptr >= buffer) printf("%02x", *bufptr);
+    uint8_t* bufptr = buffer;// + sizeof(buffer);
+    while(bufptr < (buffer + sizeof(buffer))) 
+	{
+		printf("%02x", *bufptr);
+		bufptr++;
+	}
   }
   printf("\r\n");
 }
