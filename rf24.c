@@ -174,11 +174,18 @@ uint8_t write_register_bytes(uint8_t reg, const uint8_t* buf, uint8_t len) {
 }
 
 uint8_t write_register(uint8_t reg, uint8_t value) {
-  uint8_t status;
+  uint8_t status = 0;
+  uint8_t commandbyte = W_REGISTER | (REGISTER_MASK & reg);
+   
+  uint16_t message = commandbyte; 
+  message = message << 8;
+  message = message | value;
+   
   spi_enable(spi);
-  spi_transfer(W_REGISTER | (REGISTER_MASK & reg), &status);
-  spi_transfer(value, NULL);
+  bcm2835_spi_write(message);
   spi_disable(spi);
+  
+  //printf("message = %x\n", message);
   return status;
 }
 

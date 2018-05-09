@@ -116,8 +116,10 @@ void loop(void) {
  
 int main() {
     setup();
-		//uint8_t result1 = read_register(STATUS);
-		//printf("\nresult1 in pingtest for STATUS is %x\n", result1);
+    //uint8_t result1 = read_register(CONFIG);
+	//printf("\nresult1 in pingtest for CONFIG is %x\n", result1);
+	
+	//write_register(CONFIG, read_register(CONFIG) | MASK_RX_DR);
 
 //    while(1) {
 //        loop();
