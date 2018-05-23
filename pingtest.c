@@ -117,10 +117,12 @@ void loop(void) {
 int main() {
     setup();
 	
-	uint8_t* result = reverse_address(receiveAddr);
+	printf("receiveAddr in main %02x %02x %02x %02x %02x\n", receiveAddr[0], receiveAddr[1], receiveAddr[2], receiveAddr[3], receiveAddr[4]);
+	
+	uint8_t* result = reverse_address(receiveAddr);  // &RESULT == &receiveAddr, this will cause some bugs. Fix coming soon.
 	write_register_bytes(RX_ADDR_P0, reverse_address(receiveAddr), 5);
 	print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
-	
+	print_address_register("RX_ADDR_P1", RX_ADDR_P1, 2);
 //    while(1) {
 //        loop();
 //    }

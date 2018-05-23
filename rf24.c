@@ -165,9 +165,14 @@ uint8_t read_register(uint8_t reg) {
 
 uint8_t write_register_bytes(uint8_t reg, const uint8_t* buf, uint8_t len) {
   /* RPi, x86, nRF25L01(+) are all little-endian so no worry about hton/ntoh*/
+    
   uint8_t status = 0;
   uint8_t commandbyte = W_REGISTER | (REGISTER_MASK & reg);
   int k = 0;
+  
+  
+  for (k = 0; k < len; k++)
+	printf("index %d %02x\n", k, buf[k]);
   
   char *tbuf = (char*)malloc((size_t)len + (size_t)1); 
   tbuf[0] = (char)commandbyte;
@@ -318,7 +323,7 @@ void setTXAddress(uint8_t *addr) {
 }
 
 void rf24_setRXAddressOnPipe(uint8_t *address, uint8_t pipe) {
-	//printf("RXADDYONPIPE
+	printf("RXADDYONPIPE %02x %02x %02x %02x %02x\n", address[0], address[1], address[2], address[3], address[4]);
   if (pipe > MAX_PIPE_NUM) return;
   if (pipe == 0){ /* cache pipe0 address as ackWrites overwrite this */
     pipe0_status = PIPE0_SET;
@@ -328,10 +333,19 @@ void rf24_setRXAddressOnPipe(uint8_t *address, uint8_t pipe) {
   } else {
     memcpy(pipe234_lsb, address, 1);
   }
+  printf("address width is %d\n", addr_width);
   switch(pipe){ /* For pipes 2-5, only write the last byte */
     case(0):
-    case(1): write_register_bytes(pipe_addr[pipe], reverse_address(address), addr_width); break;
-    default: write_register_bytes(pipe_addr[pipe], address + (addr_width - 1), 1); break;
+		printf("case 0 here");
+		break;
+    case(1): 
+		printf("case 1 here");
+		write_register_bytes(pipe_addr[pipe], reverse_address(address), addr_width); 
+		break;
+    default: 
+		printf("default case here");
+		write_register_bytes(pipe_addr[pipe], address + (addr_width - 1), 1); 
+		break;
   }
   write_register(pipe_payload_len[pipe], payload_len); /* Set payload len and enable */
   write_register(EN_RXADDR, (read_register(EN_RXADDR) | pipe_enable[pipe]));
