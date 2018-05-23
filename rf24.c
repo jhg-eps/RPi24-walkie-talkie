@@ -318,6 +318,7 @@ void setTXAddress(uint8_t *addr) {
 }
 
 void rf24_setRXAddressOnPipe(uint8_t *address, uint8_t pipe) {
+	//printf("RXADDYONPIPE
   if (pipe > MAX_PIPE_NUM) return;
   if (pipe == 0){ /* cache pipe0 address as ackWrites overwrite this */
     pipe0_status = PIPE0_SET;
