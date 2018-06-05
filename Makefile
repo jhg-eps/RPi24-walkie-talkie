@@ -10,8 +10,8 @@ LIBDIR=/usr/local/lib
 LIBNAME=librf24.so.1.0
 
 # The recommended compiler flags for the Raspberry Pi
-CCFLAGS= -Wall -W -fPIC
-CFLAGS= -Wall -W -fPIC -g -pthread
+CCFLAGS= -Wall -pg -W -fPIC
+CFLAGS= -Wall -pg -W -fPIC -pthread
 
 # make all
 ifeq ($(platform), pi)
@@ -48,7 +48,7 @@ clean:
 
 # Install the library to LIBPATH
 install: rf24.o
-	gcc rf24.o -shared -o $(LIBNAME)
+	gcc -pg rf24.o -shared -o $(LIBNAME)
 	cp librf24.so.1.0 ${LIBDIR}/${LIBNAME}
 	ln -sf ${LIBDIR}/${LIBNAME} ${LIBDIR}/librf24.so.1
 	ln -sf ${LIBDIR}/${LIBNAME} ${LIBDIR}/librf24.so
