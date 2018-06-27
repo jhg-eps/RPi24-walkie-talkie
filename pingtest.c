@@ -97,8 +97,8 @@ void setup(void) {
     }
     run_test_suite(&r);
     rf24_resetcfg();
-    rf24_enableDynamicPayloads();
-    rf24_setAutoAckOnPipe(1, 0);
+    //rf24_enableDynamicPayloads();
+    //rf24_setAutoAckOnPipe(1, 0);
     rf24_setRXAddressOnPipe(address, 1);
     rf24_setChannel(60);
     rf24_startListening();
@@ -110,7 +110,7 @@ void loop(void) {
         memset(receivePayload, 0, 32);
         len = rf24_recvfrom(receivePayload, len, receiveAddr, 1); /* Blocking recv */
         printf("Recvd pkt - len: %d : %d\n", len, receivePayload[0]);
-        rf24_send(receiveAddr, receivePayload, len);
+        //rf24_startWrite(receiveAddr, receivePayload, len);
     }
 }
  
@@ -120,6 +120,20 @@ int main() {
 	write_register_bytes(RX_ADDR_P0, reverse_address(receiveAddr), 5);
 	print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
 	print_address_register("RX_ADDR_P1", RX_ADDR_P1, 2);
+	
+	rf24_stopListening(); // enter a talking mode
+	setTXAddress(receiveAddr);
+	rf24_setAutoAckOnAll(0);
+	print_address_register("TX_ADDR", TX_ADDR, 1);
+
+  int SIZE = 5;
+	char a[5] = {'a','b','c','d','r'};
+	void * voidie = &a;
+
+	rf24_write(voidie, SIZE);
+	print_address_register("STATUS", STATUS, 1);
+	print_address_register("CONFIG", CONFIG, 1);
+	print_address_register("EN_AA", EN_AA, 1);
 //    while(1) {
 //        loop();
 //    }

@@ -168,6 +168,8 @@ uint8_t write_register_bytes(uint8_t reg, const uint8_t* buf, uint8_t len) {
     
   uint8_t status = 0;
   uint8_t commandbyte = W_REGISTER | (REGISTER_MASK & reg);
+  if (reg == W_TX_PLAYLOAD)                // writing to the TX FIFO is slightly different than writing to a normal register.
+  			commandbyte = W_TX_PAYLOAD;  // other functions may need to be written for the other register commands
   int k = 0;
   
   char *tbuf = (char*)malloc((size_t)len + (size_t)1); 
@@ -206,13 +208,17 @@ uint8_t write_register(uint8_t reg, uint8_t value) {
 uint8_t write_payload(const void* buf, uint8_t len) {
   uint8_t status;
   const uint8_t* current = (const uint8_t*)buf;
+  
+  printf("write_payload len %u payload_len %u\n", len, payload_len);
   uint8_t data_len = (len < payload_len ? len : payload_len);
   uint8_t blank_len = (dyn_payloads_set ? 0 : payload_len - data_len);
+  printf("other numbers: data %u blank %u\n", data_len, blank_len);  
   spi_enable(spi); /* Write bytes plus blanks if non-dynamic payloads */
-  spi_transfer(W_TX_PAYLOAD, &status);
-  while (data_len--) spi_transfer(*current++, NULL);
-  while (blank_len--) spi_transfer(0, NULL);
-  spi_disable(spi);
+  //write_register_bytes(W_TX_PAYLOAD, buf, len);
+  //spi_transfer(W_TX_PAYLOAD, &status);
+  //while (data_len--) spi_transfer(*current++, NULL); // problem
+  //while (blank_len--) spi_transfer(0, NULL); // problem
+  //spi_disable(spi);
   return status;
 }
 
@@ -278,6 +284,8 @@ uint8_t get_dyn_payload_len() {
 void transmit_payload(const void* buf, uint8_t len) {
   if (listening) disable_radio();
   write_register(CONFIG, (read_register(CONFIG) & ~PRIM_RX)); /* Toggle RX/TX mode */
+  uint8_t config = read_register(CONFIG);
+  printf("config is %x\n", config);
   microSleep(TRANSITION_DELAY); /* Let the transition to TX mode settle */
   write_payload(buf, len); /* Write the payload to the TX FIFO */
   enable_radio(); /* Pulse radio on CE pin to TX one packet from FIFO */
@@ -500,6 +508,7 @@ void setDefaults() {
 
 uint8_t rf24_init_radio(char *spi_device, uint32_t spi_speed, uint8_t cepin) {
   // Initialize pins
+  payload_len = 32;
   spidevice = spi_device;
   spispeed = spi_speed;
   enable_pin = cepin;
@@ -607,30 +616,31 @@ bool rf24_write(const void* buf, uint8_t len) {
   do
   {
     status = read_register_bytes(OBSERVE_TX, &observe_tx, 1);
-    DEBUG_PRINT(printf("%x", observe_tx));
+    printf("%x", observe_tx);
   }
   while(! (status & (TX_DS | MAX_RT)) && (millis() - sent_at < timeout));
 
   bool tx_ok, tx_fail;
   rf24_getStatus(&tx_ok, &tx_fail, &ack_payload_available);
   
-  //printf("%u%u%u\r\n", tx_ok, tx_fail, ack_payload_available);
+  printf("\n%u%u%u\r\n", tx_ok, tx_fail, ack_payload_available);
 
   result = tx_ok;
-  DEBUG_PRINT(printf("%s\n", result ? "...OK." : "...Failed"));
+  printf("%s\n", result ? "...OK." : "...Failed");
 
   // Handle the ack packet
   if (ack_payload_available) {
     ack_payload_length = get_dyn_payload_len();
-    DEBUG_PRINT(printf("[AckPacket]/"));
-    DEBUG_PRINT(printf("%i\n", ack_payload_length));
+    printf("[AckPacket]/");
+    printf("%i\n", ack_payload_length);
   }
   return result;
 }
 
 void rf24_getStatus(bool *tx_ok, bool *tx_fail, bool *rx_ready) {
   /* Read the status field and clear the bits in one call*/
-  uint8_t status = write_register(STATUS, (RX_DR | TX_DS | MAX_RT));
+  uint8_t status = read_register(STATUS);
+  printf("rf24_getstatus is %u\n", status);
   if (tx_ok) *tx_ok = status & TX_DS;
   if (tx_fail) *tx_fail = status & MAX_RT;
   if (rx_ready) *rx_ready = status & RX_DR;
