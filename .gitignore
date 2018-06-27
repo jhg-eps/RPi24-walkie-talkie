@@ -2,3 +2,6 @@
 *.a
 *.so
 pingtest
+sender
+receiver
+

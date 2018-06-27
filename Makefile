@@ -40,6 +40,11 @@ rf24Stats.o: rf24Stats.c rf24Stats.h
 pingtest: pingtest.c ${OBJECTS}
 	gcc ${CFLAGS} pingtest.c ${OBJECTS} -o pingtest -lbcm2835
 
+receiver: receiver.c ${OBJECTS}
+	gcc ${CFLAGS} receiver.c ${OBJECTS} -o receiver -lbcm2835
+
+sender: sender.c ${OBJECTS}
+	gcc ${CFLAGS} sender.c ${OBJECTS} -o sender -lbcm2835
 
 compatibility.o: compatibility.c compatibility.h
 # clear build files

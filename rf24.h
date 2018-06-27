@@ -111,7 +111,7 @@ uint8_t read_register(uint8_t reg);
    *
    * @return True if there is a payload available on the radio, false if none is
    */
-  bool rf24_available();
+  //bool rf24_available();
 
   /* Check whether there is a packet available in the packet buffer */
   bool rf24_packetAvailable();
