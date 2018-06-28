@@ -168,7 +168,7 @@ uint8_t write_register_bytes(uint8_t reg, const uint8_t* buf, uint8_t len) {
     
   uint8_t status = 0;
   uint8_t commandbyte = W_REGISTER | (REGISTER_MASK & reg);
-  if (reg == W_TX_PLAYLOAD)                // writing to the TX FIFO is slightly different than writing to a normal register.
+  if (reg == W_TX_PAYLOAD)                // writing to the TX FIFO is slightly different than writing to a normal register.
   			commandbyte = W_TX_PAYLOAD;  // other functions may need to be written for the other register commands
   int k = 0;
   
@@ -213,8 +213,8 @@ uint8_t write_payload(const void* buf, uint8_t len) {
   uint8_t data_len = (len < payload_len ? len : payload_len);
   uint8_t blank_len = (dyn_payloads_set ? 0 : payload_len - data_len);
   printf("other numbers: data %u blank %u\n", data_len, blank_len);  
-  spi_enable(spi); /* Write bytes plus blanks if non-dynamic payloads */
-  //write_register_bytes(W_TX_PAYLOAD, buf, len);
+  //spi_enable(spi); /* Write bytes plus blanks if non-dynamic payloads */
+  write_register_bytes(W_TX_PAYLOAD, buf, len);
   //spi_transfer(W_TX_PAYLOAD, &status);
   //while (data_len--) spi_transfer(*current++, NULL); // problem
   //while (blank_len--) spi_transfer(0, NULL); // problem
@@ -282,16 +282,18 @@ uint8_t get_dyn_payload_len() {
 
 /* private function for transmitting packet */
 void transmit_payload(const void* buf, uint8_t len) {
-  if (listening) disable_radio();
-  write_register(CONFIG, (read_register(CONFIG) & ~PRIM_RX)); /* Toggle RX/TX mode */
-  uint8_t config = read_register(CONFIG);
-  printf("config is %x\n", config);
-  microSleep(TRANSITION_DELAY); /* Let the transition to TX mode settle */
-  write_payload(buf, len); /* Write the payload to the TX FIFO */
-  enable_radio(); /* Pulse radio on CE pin to TX one packet from FIFO */
+  if (listening) disable_radio();               //good
+  write_register(CONFIG, (read_register(CONFIG) & ~PRIM_RX)); /* Toggle RX/TX mode */ //good
+  uint8_t config = read_register(CONFIG);   // good
+  printf("config is %x\n", config);   //good
+  microSleep(TRANSITION_DELAY); /* Let the transition to TX mode settle */ // good
+  write_payload(buf, len); /* Write the payload to the TX FIFO */   //good, I think?
+  printf("about to enable the radio.\n");
+  enable_radio(); /* Pulse radio on CE pin to TX one packet from FIFO */ // maybe good?
   microSleep(WRITE_DELAY);
-  disable_radio();
+  disable_radio();                        // maybe good?
   microSleep(TRANSITION_DELAY); /* Let the transition to Standby mode settle */
+  printf("transmit_payload ending status is %02x", read_register(STATUS));
   if (listening) rf24_startListening();
 }
 
@@ -508,15 +510,14 @@ void setDefaults() {
 
 uint8_t rf24_init_radio(char *spi_device, uint32_t spi_speed, uint8_t cepin) {
   // Initialize pins
-  payload_len = 32;
   spidevice = spi_device;
   spispeed = spi_speed;
   enable_pin = cepin;
   chip_select = (strncmp(spidevice, "/dev/spidev0.1", 14) ? 8 : 9);
   printf("Chip select is %d", chip_select);
-  //gpio_open(enable_pin, GPIO_OUT);
+  gpio_open(enable_pin, GPIO_OUT);
 
-  //printf("%s speed %d cepin %d
+  printf("%d speed %d cepin \n", spi_speed, cepin);
   spi = spi_init();
   //if (spi == NULL) return 0;
   setDefaults();
@@ -616,7 +617,7 @@ bool rf24_write(const void* buf, uint8_t len) {
   do
   {
     status = read_register_bytes(OBSERVE_TX, &observe_tx, 1);
-    printf("%x", observe_tx);
+   // printf("%x", observe_tx);
   }
   while(! (status & (TX_DS | MAX_RT)) && (millis() - sent_at < timeout));
 
