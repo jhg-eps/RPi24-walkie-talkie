@@ -101,6 +101,7 @@ void setup(void) {
     //rf24_setAutoAckOnPipe(1, 0);
     rf24_setRXAddressOnPipe(address, 1);
     rf24_setChannel(60);
+    rf24_setPayloadSize(5); 
     rf24_startListening();
     rf24_printDetails();
 }
