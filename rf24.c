@@ -209,16 +209,11 @@ uint8_t write_payload(const void* buf, uint8_t len) {
   uint8_t status;
   const uint8_t* current = (const uint8_t*)buf;
   
-  printf("write_payload len %u payload_len %u\n", len, payload_len);
   uint8_t data_len = (len < payload_len ? len : payload_len);
   uint8_t blank_len = (dyn_payloads_set ? 0 : payload_len - data_len);
-  printf("other numbers: data %u blank %u\n", data_len, blank_len);  
-  //spi_enable(spi); /* Write bytes plus blanks if non-dynamic payloads */
+  //printf("other numbers: data %u blank %u\n", data_len, blank_len);  
   write_register_bytes(W_TX_PAYLOAD, buf, len);
-  //spi_transfer(W_TX_PAYLOAD, &status);
-  //while (data_len--) spi_transfer(*current++, NULL); // problem
-  //while (blank_len--) spi_transfer(0, NULL); // problem
-  //spi_disable(spi);
+
   return status;
 }
 
@@ -285,15 +280,14 @@ void transmit_payload(const void* buf, uint8_t len) {
   if (listening) disable_radio();               //good
   write_register(CONFIG, (read_register(CONFIG) & ~PRIM_RX)); /* Toggle RX/TX mode */ //good
   uint8_t config = read_register(CONFIG);   // good
-  printf("config is %x\n", config);   //good
+ // printf("config is %x\n", config);   //good
   microSleep(TRANSITION_DELAY); /* Let the transition to TX mode settle */ // good
   write_payload(buf, len); /* Write the payload to the TX FIFO */   //good, I think?
-  printf("about to enable the radio.\n");
   enable_radio(); /* Pulse radio on CE pin to TX one packet from FIFO */ // maybe good?
   microSleep(WRITE_DELAY);
   disable_radio();                        // maybe good?
   microSleep(TRANSITION_DELAY); /* Let the transition to Standby mode settle */
-  printf("transmit_payload ending status is %02x", read_register(STATUS));
+  //printf("transmit_payload ending status is %02x", read_register(STATUS));
   if (listening) rf24_startListening();
 }
 
@@ -323,9 +317,9 @@ uint8_t rf24_getAddressWidth(){
 
 void setTXAddress(uint8_t *addr) {
   memcpy(transmit_address, addr, addr_width);
-  printf("setTXAddress: 0x%02x%02x%02x%02x%02x", addr[0], addr[1], addr[2], addr[3], addr[4]);
+  printf("setTXAddress: 0x%02x%02x%02x%02x%02x\n", addr[0], addr[1], addr[2], addr[3], addr[4]);
   write_register_bytes(TX_ADDR, reverse_address(transmit_address), addr_width);
-  printf("setTXAddress (part 2): 0x%02x%02x%02x%02x%02x", transmit_address[0], transmit_address[1], transmit_address[2], transmit_address[3], transmit_address[4]);
+  printf("setTXAddress (part 2): 0x%02x%02x%02x%02x%02x\n", transmit_address[0], transmit_address[1], transmit_address[2], transmit_address[3], transmit_address[4]);
 }
 
 void rf24_setRXAddressOnPipe(uint8_t *address, uint8_t pipe) {
@@ -641,7 +635,7 @@ bool rf24_write(const void* buf, uint8_t len) {
 void rf24_getStatus(bool *tx_ok, bool *tx_fail, bool *rx_ready) {
   /* Read the status field and clear the bits in one call*/
   uint8_t status = read_register(STATUS);
-  printf("rf24_getstatus is %u\n", status);
+  //printf("rf24_getstatus is %u\n", status);
   if (tx_ok) *tx_ok = status & TX_DS;
   if (tx_fail) *tx_fail = status & MAX_RT;
   if (rx_ready) *rx_ready = status & RX_DR;
