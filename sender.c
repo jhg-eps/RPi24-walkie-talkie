@@ -118,11 +118,11 @@ void loop(void) {
 int main() {
     setup();
 	
-	write_register_bytes(RX_ADDR_P0, reverse_address(receiveAddr), 5);
+	write_register_bytes(RX_ADDR_P0, receiveAddr, 5);
 	print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
 	print_address_register("RX_ADDR_P1", RX_ADDR_P1, 2);
-	
 	rf24_stopListening(); // enter a talking mode
+	print_address_register("CONFIG", CONFIG, 1);
 	setTXAddress(receiveAddr);
 	print_address_register("TX_ADDR", TX_ADDR, 1);
 

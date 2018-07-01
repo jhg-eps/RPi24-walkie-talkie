@@ -294,6 +294,7 @@ void transmit_payload(const void* buf, uint8_t len) {
 /*********************/
 /* Address functions */
 /*********************/
+#if 0
 uint8_t *reverse_address(uint8_t *address){
   uint8_t i = 0, j = addr_width - 1, temp = 0;
   while (i < j){
@@ -303,7 +304,7 @@ uint8_t *reverse_address(uint8_t *address){
   }
   return address;
 }
-
+# endif
 uint8_t rf24_setAddressWidth(uint8_t address_width){
   if (address_width > MAX_ADDR_WIDTH || address_width < MIN_ADDR_WIDTH) return 0;
   write_register(AW, address_width);
@@ -318,7 +319,7 @@ uint8_t rf24_getAddressWidth(){
 void setTXAddress(uint8_t *addr) {
   memcpy(transmit_address, addr, addr_width);
   printf("setTXAddress: 0x%02x%02x%02x%02x%02x\n", addr[0], addr[1], addr[2], addr[3], addr[4]);
-  write_register_bytes(TX_ADDR, reverse_address(transmit_address), addr_width);
+  write_register_bytes(TX_ADDR, transmit_address, addr_width);
   printf("setTXAddress (part 2): 0x%02x%02x%02x%02x%02x\n", transmit_address[0], transmit_address[1], transmit_address[2], transmit_address[3], transmit_address[4]);
 }
 
@@ -338,7 +339,7 @@ void rf24_setRXAddressOnPipe(uint8_t *address, uint8_t pipe) {
     case(0):
 		break;
     case(1): 
-		write_register_bytes(pipe_addr[pipe], reverse_address(address), addr_width); 
+		write_register_bytes(pipe_addr[pipe], address, addr_width); 
 		break;
     default: 
 		write_register_bytes(pipe_addr[pipe], address + (addr_width - 1), 1); 
@@ -532,7 +533,7 @@ void rf24_startListening() {
   write_register(STATUS, (RX_DR | TX_DS | MAX_RT));
   /* If PIPE0's addr has been set and then changed by an autoACK, restore it */
   if (PIPE0_SET && PIPE0_AUTO_ACKED) 
-    write_register_bytes(RX_ADDR_P0, reverse_address(pipe0_address), addr_width);
+    write_register_bytes(RX_ADDR_P0, pipe0_address, addr_width);
   enable_radio();
   microSleep(TRANSITION_DELAY); /* wait for the radio to come up */
   listening = TRUE;
@@ -649,7 +650,7 @@ void rf24_peekStatus(bool *tx_ok, bool *tx_fail, bool *rx_ready) {
 }
 
 void rf24_autoACKPacket(){
-    write_register_bytes(RX_ADDR_P0, reverse_address(transmit_address), addr_width);
+    write_register_bytes(RX_ADDR_P0, transmit_address, addr_width);
     write_register(RX_PW_P0, (payload_len < MAX_PAYLOAD_LEN ? payload_len : MAX_PAYLOAD_LEN));
     pipe0_status |= PIPE0_AUTO_ACKED;
 }
