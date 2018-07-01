@@ -98,7 +98,9 @@ void setup(void) {
     run_test_suite(&r);
     rf24_resetcfg();
     //setTXAddress(receiveAddr);
-    rf24_setRXAddressOnPipe(receiveAddr, 1);
+    rf24_setAddressWidth(5);
+    rf24_setRXAddressOnPipe(receiveAddr, 0);
+    write_register(RX_PW_P0, 5);
     rf24_setAutoAckOnAll(0);
     rf24_setChannel(60);
     rf24_setPayloadSize(5); 
@@ -107,6 +109,7 @@ void setup(void) {
 }
  
 void loop(void) {
+    //printf("in loop(), RPD is %02x\n", read_register(RPD));
     while(rf24_packetAvailable()) {
         memset(receivePayload, 0, 5);
         len = rf24_recv(receivePayload, len, 0); /* Blocking recv */
@@ -118,13 +121,14 @@ void loop(void) {
 int main() {
     setup();
 
-	print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
-	print_address_register("RX_ADDR_P1", RX_ADDR_P1, 2);
+	print_address_register("RX_ADDR_P0", RX_ADDR_P0, 1);
+	print_address_register("RX_ADDR_P1", RX_ADDR_P1, 1);
 	print_address_register("TX_ADDR", TX_ADDR, 1);
-
+	
   	print_address_register("STATUS", STATUS, 1);
 	print_address_register("CONFIG", CONFIG, 1);
 	print_address_register("EN_AA", EN_AA, 1);
+	rf24_printDetails();
     while(1) {
         loop();
     }
