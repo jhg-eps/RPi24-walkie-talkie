@@ -98,7 +98,7 @@ void setup(void) {
     run_test_suite(&r);
     rf24_resetcfg();
     //setTXAddress(receiveAddr);
-    rf24_setAddressWidth(5);
+    rf24_setAddressWidth(3);
     rf24_setRXAddressOnPipe(receiveAddr, 0);
     write_register(RX_PW_P0, 5);
     rf24_setAutoAckOnAll(0);
