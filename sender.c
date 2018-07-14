@@ -9,7 +9,7 @@
 uint8_t address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};
 /* 32 byte character array is max payload */
 char receivePayload[32];
-uint8_t receiveAddr[5] = {0xB7, 0xB7, 0xB7, 0xB7, 0xD5};
+uint8_t receiveAddr[5] = {0xB7, 0xB7, 0xDF, 0xB7, 0xD5};
 uint8_t len;
 
 typedef struct result {
@@ -97,8 +97,7 @@ void setup(void) {
     }
     run_test_suite(&r);
     rf24_resetcfg();
-    //rf24_enableDynamicPayloads();
-    //rf24_setAutoAckOnPipe(1, 0);
+    
     rf24_setRXAddressOnPipe(address, 1);
     rf24_setChannel(60);
     rf24_setPayloadSize(5);
@@ -118,11 +117,12 @@ void loop(void) {
 int main() {
     setup();
 	
-	write_register_bytes(RX_ADDR_P0, receiveAddr, 5);
-	print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
-	print_address_register("RX_ADDR_P1", RX_ADDR_P1, 2);
+	//write_register_bytes(RX_ADDR_P0, receiveAddr, 5);
+	//print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
+	//print_address_register("RX_ADDR_P1", RX_ADDR_P1, 2);
 	rf24_stopListening(); // enter a talking mode
-	print_address_register("CONFIG", CONFIG, 1);
+	rf24_setAddressWidth(5);
+	//print_address_register("CONFIG", CONFIG, 1);
 	setTXAddress(receiveAddr);
 	print_address_register("TX_ADDR", TX_ADDR, 1);
 
@@ -131,9 +131,9 @@ int main() {
 	void * voidie = &a;
 
 	rf24_write(voidie, SIZE);
-	print_address_register("STATUS", STATUS, 1);
-	print_address_register("CONFIG", CONFIG, 1);
-	print_address_register("EN_AA", EN_AA, 1);
+	//print_address_register("STATUS", STATUS, 1);
+	//print_address_register("CONFIG", CONFIG, 1);
+	//print_address_register("EN_AA", EN_AA, 1);
 //    while(1) {
 //        loop();
 //    }

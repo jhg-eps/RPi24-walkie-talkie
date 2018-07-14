@@ -6,10 +6,11 @@
 #include "rf24.h"
 #include "nRF24L01.h"
 
-uint8_t address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};
+uint8_t address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};    // the TX address
 /* 32 byte character array is max payload */
 char receivePayload[5];
-uint8_t receiveAddr[5] = {0xB7, 0xB7, 0xB7, 0xB7, 0xD5};
+uint8_t receiveAddr[5] = {0xB7, 0x59, 0xB7, 0x69, 0xE7};  // the pipe 0 rx address
+uint8_t receiveAddr_2[5] = {0x62, 0xBE, 0x59, 0xF5, 0xC2}; // the pipe 1 rx address
 uint8_t len;
 
 typedef struct result {
@@ -97,19 +98,22 @@ void setup(void) {
     }
     run_test_suite(&r);
     rf24_resetcfg();
-    //setTXAddress(receiveAddr);
-    rf24_setAddressWidth(3);
+
+    rf24_setAddressWidth(5);
     rf24_setRXAddressOnPipe(receiveAddr, 0);
+    rf24_setRXAddressOnPipe(receiveAddr_2, 1);
     write_register(RX_PW_P0, 5);
     rf24_setAutoAckOnAll(0);
     rf24_setChannel(60);
     rf24_setPayloadSize(5); 
     rf24_startListening();
-    rf24_printDetails();
+    //rf24_printDetails();
 }
- 
+
 void loop(void) {
     //printf("in loop(), RPD is %02x\n", read_register(RPD));
+    if (!rf24_is_rx_fifo_empty())
+	printf("found a payload!!!");
     while(rf24_packetAvailable()) {
         memset(receivePayload, 0, 5);
         len = rf24_recv(receivePayload, len, 0); /* Blocking recv */
@@ -117,17 +121,11 @@ void loop(void) {
         //rf24_startWrite(receiveAddr, receivePayload, len);
     }
 }
- 
+
 int main() {
     setup();
 
-	print_address_register("RX_ADDR_P0", RX_ADDR_P0, 1);
-	print_address_register("RX_ADDR_P1", RX_ADDR_P1, 1);
-	print_address_register("TX_ADDR", TX_ADDR, 1);
-	
-  	print_address_register("STATUS", STATUS, 1);
-	print_address_register("CONFIG", CONFIG, 1);
-	print_address_register("EN_AA", EN_AA, 1);
+	printf("\nDETAILS AGAIN\n");
 	rf24_printDetails();
     while(1) {
         loop();

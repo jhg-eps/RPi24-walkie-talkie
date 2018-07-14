@@ -305,9 +305,16 @@ uint8_t *reverse_address(uint8_t *address){
   return address;
 }
 # endif
+
+bool rf24_is_rx_fifo_empty() 
+{
+	return (read_register(FIFO_STATUS) & RX_EMPTY);
+}
+
 uint8_t rf24_setAddressWidth(uint8_t address_width){
+
   if (address_width > MAX_ADDR_WIDTH || address_width < MIN_ADDR_WIDTH) return 0;
-  write_register(SETUP_AW, address_width);
+  write_register(SETUP_AW, address_width - 2); // SETUP_AW has a non 1-to-1 mapping of input address width requested vs the actual register value
   addr_width = address_width;
   return addr_width;
 }
@@ -318,13 +325,11 @@ uint8_t rf24_getAddressWidth(){
 
 void setTXAddress(uint8_t *addr) {
   memcpy(transmit_address, addr, addr_width);
-  printf("setTXAddress: 0x%02x%02x%02x%02x%02x\n", addr[0], addr[1], addr[2], addr[3], addr[4]);
   write_register_bytes(TX_ADDR, transmit_address, addr_width);
-  printf("setTXAddress (part 2): 0x%02x%02x%02x%02x%02x\n", transmit_address[0], transmit_address[1], transmit_address[2], transmit_address[3], transmit_address[4]);
 }
 
 void rf24_setRXAddressOnPipe(uint8_t *address, uint8_t pipe) {
-	
+  printf("working on pipe %u\n", pipe);
   if (pipe > MAX_PIPE_NUM) return;
   if (pipe == 0){ /* cache pipe0 address as ackWrites overwrite this */
     pipe0_status = PIPE0_SET;
@@ -771,9 +776,17 @@ void rf24_printDetails() {
   printf("PA Power\t = %s\r\n", rf24_pa_dbm_e_str_P[rf24_getPALevel()]);
   print_status(check_status());
   print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
-  print_byte_register("RX_ADDR_P2-5", RX_ADDR_P2);
-  //print_address_register("TX_ADDR", TX_ADDR);
-  print_byte_register("RX_PW_P0-6", RX_PW_P0);
+  print_byte_register("RX_ADDR_P2", RX_ADDR_P2);
+  print_byte_register("RX_ADDR_P3", RX_ADDR_P3);
+  print_byte_register("RX_ADDR_P4", RX_ADDR_P4);
+  print_byte_register("RX_ADDR_P5", RX_ADDR_P5);
+  print_address_register("TX_ADDR", TX_ADDR, 1);
+  print_byte_register("RX_PW_P0", RX_PW_P0);
+  print_byte_register("RX_PW_P1", RX_PW_P0);
+  print_byte_register("RX_PW_P2", RX_PW_P0);
+  print_byte_register("RX_PW_P3", RX_PW_P0);
+  print_byte_register("RX_PW_P4", RX_PW_P0);
+  print_byte_register("RX_PW_P5", RX_PW_P0);
   print_byte_register("EN_AA", EN_AA);
   print_byte_register("EN_RXADDR", EN_RXADDR);
   print_byte_register("RF_CH", RF_CH);
