@@ -6,11 +6,14 @@
 #include "rf24.h"
 #include "nRF24L01.h"
 
-uint8_t address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};
+uint8_t tx_address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};
+uint8_t rx_address_0[5] = {0xB7, 0xB7, 0xB7, 0xB7, 0xD5};
+uint8_t rx_address_1[5] = {0xA1, 0xA1, 0xA1, 0xA1, 0xC2};
+uint8_t receiveAddr[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
 /* 32 byte character array is max payload */
 char receivePayload[32];
-uint8_t receiveAddr[5] = {0xB7, 0xB7, 0xDF, 0xB7, 0xD5};
-uint8_t len;
+
+uint8_t len = 5;
 
 typedef struct result {
     uint8_t pass;
@@ -90,21 +93,20 @@ void run_test_suite(Result *r) {
 void setup(void) {
     Result r = {.pass = 0, .fail = 0};
     uint8_t status = rf24_init_radio("/dev/spidev0.0", 6000000, 25);
-    if (status == 0) 
+    if (status == 0)
     {
 	exit(-1);
 	printf("We have failure!!!");
     }
     run_test_suite(&r);
     rf24_resetcfg();
-    
-    rf24_setRXAddressOnPipe(address, 1);
+    rf24_setAddressWidth(5);
+    rf24_setRXAddressOnPipe(rx_address_1, 1);
     rf24_setChannel(60);
     rf24_setPayloadSize(5);
     rf24_setAutoAckOnAll(0);
-    rf24_printDetails();
 }
- 
+
 void loop(void) {
     while(rf24_packetAvailable()) {
         memset(receivePayload, 0, 32);
@@ -113,29 +115,23 @@ void loop(void) {
         //rf24_startWrite(receiveAddr, receivePayload, len);
     }
 }
- 
+
 int main() {
     setup();
-	
-	//write_register_bytes(RX_ADDR_P0, receiveAddr, 5);
-	//print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
-	//print_address_register("RX_ADDR_P1", RX_ADDR_P1, 2);
-	rf24_stopListening(); // enter a talking mode
-	rf24_setAddressWidth(5);
-	//print_address_register("CONFIG", CONFIG, 1);
-	setTXAddress(receiveAddr);
-	print_address_register("TX_ADDR", TX_ADDR, 1);
 
-  int SIZE = 5;
-	char a[5] = {'a','b','c','d','r'};
-	void * voidie = &a;
+    rf24_stopListening(); // enter a talking mode
+    setTXAddress(tx_address);
 
-	rf24_write(voidie, SIZE);
-	//print_address_register("STATUS", STATUS, 1);
-	//print_address_register("CONFIG", CONFIG, 1);
-	//print_address_register("EN_AA", EN_AA, 1);
+    printf("\nDETAILS AGAIN\n");
+    rf24_printDetails();
+    int SIZE = 5;
+    char a[5] = {'a','b','c','d','r'};
+    void * voidie = &a;
+
+    rf24_write(voidie, SIZE);
 //    while(1) {
 //        loop();
 //    }
+
     return 0;
 }
