@@ -6,12 +6,12 @@
 #include "rf24.h"
 #include "nRF24L01.h"
 
-uint8_t address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};    // the TX address
-/* 32 byte character array is max payload */
 char receivePayload[5];
-uint8_t receiveAddr[5] = {0xB7, 0x59, 0xB7, 0x69, 0xE7};  // the pipe 0 rx address
-uint8_t receiveAddr_2[5] = {0x62, 0xBE, 0x59, 0xF5, 0xC2}; // the pipe 1 rx address
-uint8_t len;
+uint8_t tx_address[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};    // the TX address
+uint8_t rx_address_0[5] = {0xF0, 0xF0, 0xF0, 0xF0, 0xE1};  // the pipe 0 rx address
+uint8_t rx_address_1[5] = {0xA1, 0xA1, 0xA1, 0xA1, 0xC2}; // the pipe 1 rx address
+uint8_t receiveAddr[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t len = 5;
 
 typedef struct result {
     uint8_t pass;
@@ -91,7 +91,7 @@ void run_test_suite(Result *r) {
 void setup(void) {
     Result r = {.pass = 0, .fail = 0};
     uint8_t status = rf24_init_radio("/dev/spidev0.0", 6000000, 25);
-    if (status == 0) 
+    if (status == 0)
     {
 	exit(-1);
 	printf("We have failure!!!");
@@ -100,14 +100,12 @@ void setup(void) {
     rf24_resetcfg();
 
     rf24_setAddressWidth(5);
-    rf24_setRXAddressOnPipe(receiveAddr, 0);
-    rf24_setRXAddressOnPipe(receiveAddr_2, 1);
-    write_register(RX_PW_P0, 5);
+    rf24_setPayloadSize(5);
+    rf24_setRXAddressOnPipe(rx_address_0, 0);
+    rf24_setRXAddressOnPipe(rx_address_1, 1);
     rf24_setAutoAckOnAll(0);
     rf24_setChannel(60);
-    rf24_setPayloadSize(5); 
     rf24_startListening();
-    //rf24_printDetails();
 }
 
 void loop(void) {
