@@ -126,23 +126,26 @@ uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
 uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
   uint8_t status = 0;
   uint8_t commandbyte = R_REGISTER | (REGISTER_MASK & reg); 
+  if (reg == R_RX_PAYLOAD)                // writing to the TX FIFO is slightly different than writing to a normal register.
+       commandbyte = R_RX_PAYLOAD;  // other functions may need to be written for the other register commands
+
   uint8_t k = 0; 
   uint8_t j = 0;
-  
+
   char *tbuf = (char*)malloc((size_t)len + (size_t)1); 
   tbuf[0] = (char)commandbyte;
   for (k = 1; k < (len + 1); k++)
 	tbuf[k] = 'F';
-  
+
   char rbuf[] = {'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F'}; 
-  
+
   spi_enable(spi);
   bcm2835_spi_transfernb(tbuf, rbuf, len + 1);
   spi_disable(spi);
-  
+
   for (j = 1; j < (len + 1); j++)
 	buf[j - 1] = (uint8_t)rbuf[j];
-	
+
   free(tbuf);
   return status;
 }
@@ -206,7 +209,7 @@ uint8_t write_register(uint8_t reg, uint8_t value) {
 /* Payload functions   */
 /***********************/
 uint8_t write_payload(const void* buf, uint8_t len) {
-  uint8_t status;
+  uint8_t status = 0;
   const uint8_t* current = (const uint8_t*)buf;
   
   uint8_t data_len = (len < payload_len ? len : payload_len);
@@ -218,17 +221,18 @@ uint8_t write_payload(const void* buf, uint8_t len) {
 }
 
 uint8_t read_payload(void* buf, uint8_t buf_len, uint8_t payload_len) {
-  uint8_t status, data_len = payload_len, blank_len = 0;
-  uint8_t* current = (uint8_t*)buf;
-  if (buf_len < payload_len){
-    data_len = buf_len;
-    blank_len = payload_len - buf_len;
-  }
-  spi_enable(spi);
-  spi_transfer(R_RX_PAYLOAD, &status);
-  while (data_len--) spi_transfer(0xff, current++);
-  while (blank_len--) spi_transfer(0xff, NULL);
-  spi_disable(spi);
+  uint8_t status = 0;
+  //, data_len = payload_len, blank_len = 0;
+  //if (buf_len < payload_len){
+ //   data_len = buf_len;
+ //   blank_len = payload_len - buf_len;
+ // }
+  disable_radio();
+  read_register_bytes(R_RX_PAYLOAD, buf, payload_len);
+  /* Clear status bit if there are no more payloads. ARE THERE MORE PAYLOADS?! */
+  write_register(STATUS, RX_DR);
+  enable_radio();
+
   return status;
 }
 
@@ -279,15 +283,13 @@ uint8_t get_dyn_payload_len() {
 void transmit_payload(const void* buf, uint8_t len) {
   if (listening) disable_radio();               //good
   write_register(CONFIG, (read_register(CONFIG) & ~PRIM_RX)); /* Toggle RX/TX mode */ //good
-  uint8_t config = read_register(CONFIG);   // good
- // printf("config is %x\n", config);   //good
   microSleep(TRANSITION_DELAY); /* Let the transition to TX mode settle */ // good
   write_payload(buf, len); /* Write the payload to the TX FIFO */   //good, I think?
   enable_radio(); /* Pulse radio on CE pin to TX one packet from FIFO */ // maybe good?
   microSleep(WRITE_DELAY);
   disable_radio();                        // maybe good?
   microSleep(TRANSITION_DELAY); /* Let the transition to Standby mode settle */
-  //printf("transmit_payload ending status is %02x", read_register(STATUS));
+
   if (listening) rf24_startListening();
 }
 
@@ -751,7 +753,7 @@ void print_byte_register(char* name, uint8_t reg) {
 }
 
 void print_address_register(char* name, uint8_t reg, uint8_t qty) {
-  printf("\t%s =", name);
+  printf("\n%s =", name);
   while (qty--) {
     uint8_t buffer[5];
     read_register_bytes(reg++, buffer, sizeof(buffer));
@@ -763,7 +765,6 @@ void print_address_register(char* name, uint8_t reg, uint8_t qty) {
 		bufptr++;
 	}
   }
-  printf("\r\n");
 }
 
 void rf24_printDetails() {
@@ -776,17 +777,18 @@ void rf24_printDetails() {
   printf("PA Power\t = %s\r\n", rf24_pa_dbm_e_str_P[rf24_getPALevel()]);
   print_status(check_status());
   print_address_register("RX_ADDR_P0-1", RX_ADDR_P0, 2);
+  print_address_register("TX_ADDR", TX_ADDR, 1);
   print_byte_register("RX_ADDR_P2", RX_ADDR_P2);
   print_byte_register("RX_ADDR_P3", RX_ADDR_P3);
   print_byte_register("RX_ADDR_P4", RX_ADDR_P4);
   print_byte_register("RX_ADDR_P5", RX_ADDR_P5);
-  print_address_register("TX_ADDR", TX_ADDR, 1);
   print_byte_register("RX_PW_P0", RX_PW_P0);
   print_byte_register("RX_PW_P1", RX_PW_P0);
   print_byte_register("RX_PW_P2", RX_PW_P0);
   print_byte_register("RX_PW_P3", RX_PW_P0);
   print_byte_register("RX_PW_P4", RX_PW_P0);
   print_byte_register("RX_PW_P5", RX_PW_P0);
+  printf("\n");
   print_byte_register("EN_AA", EN_AA);
   print_byte_register("EN_RXADDR", EN_RXADDR);
   print_byte_register("RF_CH", RF_CH);
@@ -794,6 +796,7 @@ void rf24_printDetails() {
   print_byte_register("CONFIG", CONFIG);
   print_byte_register("SETUP_AW", SETUP_AW);
   print_byte_register("DYNPD/FEATURE", DYNPD);
+  printf("\n***********************************\n");
 }
 
 int setup_isr_thread(int pin) {

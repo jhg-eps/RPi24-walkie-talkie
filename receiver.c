@@ -111,7 +111,11 @@ void setup(void) {
 void loop(void) {
     //printf("in loop(), RPD is %02x\n", read_register(RPD));
     if (!rf24_is_rx_fifo_empty())
-	printf("found a payload!!!");
+	{
+		char buf[5] = {0};
+                read_payload(buf, 5, 5);
+		printf("Collected the payload data [%c%c%c%c%c]\n",buf[0], buf[1], buf[2], buf[3], buf[4]);
+	}
     while(rf24_packetAvailable()) {
         memset(receivePayload, 0, 5);
         len = rf24_recv(receivePayload, len, 0); /* Blocking recv */
@@ -123,7 +127,7 @@ void loop(void) {
 int main() {
     setup();
 
-	printf("\nDETAILS AGAIN\n");
+	printf("\nNRF24 DETAILS\n");
 	rf24_printDetails();
     while(1) {
         loop();
