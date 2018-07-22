@@ -113,16 +113,6 @@ void *radio_isr_thread();
 /***********************/
 /* Register functions  */
 /***********************/
-#if 0
-uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
-  uint8_t status;
-  spi_enable(spi);
-  spi_transfer(R_REGISTER | (REGISTER_MASK & reg), &status);
-  while (len--) *buf++ = spi_transfer(0xff, NULL);
-  spi_disable(spi);
-  return status;
-}
-#endif
 uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
   uint8_t status = 0;
   uint8_t commandbyte = R_REGISTER | (REGISTER_MASK & reg); 
@@ -147,7 +137,12 @@ uint8_t read_register_bytes(uint8_t reg, uint8_t* buf, uint8_t len) {
 	buf[j - 1] = (uint8_t)rbuf[j];
 
   free(tbuf);
-  return status;
+  if(rbuf) {
+        return (uint8_t)rbuf[0];
+  }
+  else {
+	return status;
+  }
 }
 
 
@@ -289,7 +284,7 @@ void transmit_payload(const void* buf, uint8_t len) {
   microSleep(WRITE_DELAY);
   disable_radio();                        // maybe good?
   microSleep(TRANSITION_DELAY); /* Let the transition to Standby mode settle */
-
+  printf("in transmit_payload, are we listening? %d", listening);
   if (listening) rf24_startListening();
 }
 
@@ -610,8 +605,10 @@ int rf24_send(uint8_t *addr, const void* buf, uint8_t len) {
 
 bool rf24_write(const void* buf, uint8_t len) {
   bool result = FALSE;
+  system("date +\"%s %3N\"");
   transmit_payload(buf, len);
-
+  system("date +\"%s %3N\"");
+  system("date +\"%s %3N\"");
   uint8_t observe_tx;
   uint8_t status;
   uint32_t sent_at = millis();
@@ -619,13 +616,12 @@ bool rf24_write(const void* buf, uint8_t len) {
   do
   {
     status = read_register_bytes(OBSERVE_TX, &observe_tx, 1);
-   // printf("%x", observe_tx);
   }
   while(! (status & (TX_DS | MAX_RT)) && (millis() - sent_at < timeout));
 
   bool tx_ok, tx_fail;
   rf24_getStatus(&tx_ok, &tx_fail, &ack_payload_available);
-  
+ 
   printf("\n%u%u%u\r\n", tx_ok, tx_fail, ack_payload_available);
 
   result = tx_ok;

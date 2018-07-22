@@ -103,7 +103,7 @@ void setup(void) {
     rf24_setAddressWidth(5);
     rf24_setRXAddressOnPipe(rx_address_1, 1);
     rf24_setChannel(60);
-    rf24_setPayloadSize(5);
+    rf24_setPayloadSize(10);
     rf24_setAutoAckOnAll(0);
 }
 
@@ -121,14 +121,16 @@ int main() {
 
     rf24_stopListening(); // enter a talking mode
     setTXAddress(tx_address);
-
+    system("date");
     printf("\nDETAILS AGAIN\n");
     rf24_printDetails();
-    int SIZE = 5;
-    char a[5] = {'a','b','c','d','r'};
+    int SIZE = 10;
+    char a[10] = {'a','b','c','d','r','a','e','i','o','u'};
     void * voidie = &a;
 
+    system("date +\"%s %3N\"");
     rf24_write(voidie, SIZE);
+    system("date +\"%s %3N\"");
 //    while(1) {
 //        loop();
 //    }
