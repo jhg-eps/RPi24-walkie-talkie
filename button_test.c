@@ -11,10 +11,28 @@
 #define PULL_UP 2
 #define PULL_DOWN 1
 #define RESISTOR_GONE 0
+#define DEBOUNCE_TIME 300
+#define LOGIC_LOW 0
+#define LOGIC_HIGH 1
 
 void queue_access_callback(void)
 {
-	printf("we are accessing the queue now.\n");
+	// do software debouncing, we are waiting for 
+	unsigned long start = millis();
+	unsigned long end = millis() + (unsigned long)DEBOUNCE_TIME;
+	unsigned long current = 0;
+	while (current <= end)
+	{
+		current = millis();
+	}
+
+	// Query the pin again
+ 	if (digitalRead(GPIO_4_AKA_BUTTON1) == LOGIC_LOW)
+	{
+		printf("We are accessing the queue now.\n");
+	} else {
+		printf("Debounce test failed.\n");
+	}
 }
 
 int main(void)
