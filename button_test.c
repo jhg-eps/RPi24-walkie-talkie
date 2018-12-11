@@ -12,22 +12,31 @@
 #define PULL_DOWN 1
 #define RESISTOR_GONE 0
 
+void queue_access_callback(void)
+{
+	printf("we are accessing the queue now.\n");
+}
+
 int main(void)
 {
 	int pin_state = 0;
 	// Initialize wiringPi
 	wiringPiSetup();
-	
+
 	// Initialize the testing button.
 	pinMode(GPIO_4_AKA_BUTTON1, INPUT);
 	pullUpDnControl(GPIO_4_AKA_BUTTON1, PULL_UP);
 
+	// Initialize the interrupt for the pin.
+	wiringPiISR(GPIO_4_AKA_BUTTON1, INT_EDGE_FALLING, &queue_access_callback);
+
+
 	// whi;e loop to poll the button.
 	while(1)
 	{
-		pin_state = digitalRead(GPIO_4_AKA_BUTTON1);
-		if (pin_state == 0)
-			printf("Button 1 is pressed!!\n");
+//		pin_state = digitalRead(GPIO_4_AKA_BUTTON1);
+//		if (pin_state == 0)
+//			printf("Button 1 is pressed!!\n");
 
 		// put a 250ms delay to give the processor some breathing room
 		delay (250);
