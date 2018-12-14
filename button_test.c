@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <wiringPi.h>
+#include <pthread.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 // Compilation Instructions
 //gcc -Wall -o button button_test.c -lwiringPi
@@ -14,11 +17,17 @@
 #define DEBOUNCE_TIME 300
 #define LOGIC_LOW 0
 #define LOGIC_HIGH 1
+#define BUF_SIZE 1024
+
+typedef struct _data_buffers {
+	char from_microphone[BUF_SIZE];
+	char to_speaker[BUF_SIZE];
+} audio_data_t;
+
 
 void queue_access_callback(void)
 {
-	// do software debouncing, we are waiting for 
-	unsigned long start = millis();
+	// do software debouncing, we are waiting for....??
 	unsigned long end = millis() + (unsigned long)DEBOUNCE_TIME;
 	unsigned long current = 0;
 	while (current <= end)
@@ -35,9 +44,56 @@ void queue_access_callback(void)
 	}
 }
 
+void * from_microphone(void * from_mike)
+{
+	audio_data_t * ad = (audio_data_t *)from_mike;
+
+	int i = 0;
+
+	for (i = 0; i < BUF_SIZE; i++)
+	{
+		ad->from_microphone[i] = 'f';
+	}
+
+	while(1)
+	{
+		delay(250);
+		printf("from_microphone: %c\n", ad->to_speaker[500]);
+	}
+
+	// Make sure the thread exits cleanly, can use this return code in pthread_join();
+	pthread_exit(NULL);
+}
+
+void * to_speaker(void * to_spkr)
+{
+ 	audio_data_t * ad = (audio_data_t *)to_spkr;
+
+	int i = 0;
+
+	for (i = 0; i < BUF_SIZE; i++)
+	{
+		ad->to_speaker[i] = 't';
+	}
+
+	while(1)
+	{
+		delay(250);
+		printf("to_speaker: %c\n", ad->from_microphone[500]);
+	}
+	// Make sure the thread exits cleanly, can use this return code in pthread_join();
+	pthread_exit(NULL);
+}
+
 int main(void)
 {
-	int pin_state = 0;
+	// Variable initializations
+	pthread_t from_microphone_t;
+	pthread_t to_speaker_t;
+	audio_data_t audio_data;
+
+	int pthread_rc = 0;
+
 	// Initialize wiringPi
 	wiringPiSetup();
 
@@ -49,7 +105,15 @@ int main(void)
 	wiringPiISR(GPIO_4_AKA_BUTTON1, INT_EDGE_FALLING, &queue_access_callback);
 
 
-	// whi;e loop to poll the button.
+	// Hardware initialized, let's get the audio processing threads going.
+	pthread_rc = pthread_create(&from_microphone_t, NULL, from_microphone, &audio_data);
+	if (pthread_rc > 0) 
+		printf("Unable to create from_microphone thread!\n");
+	pthread_rc = pthread_create(&to_speaker_t, NULL, to_speaker, &audio_data);
+	if (pthread_rc > 0)
+		printf("Unable to create to_speaker thread!\n");
+
+	// while loop to poll the button.
 	while(1)
 	{
 //		pin_state = digitalRead(GPIO_4_AKA_BUTTON1);
