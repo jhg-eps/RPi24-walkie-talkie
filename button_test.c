@@ -4,8 +4,10 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include "microphone_setup.h"
+
 // Compilation Instructions
-//gcc -Wall -o button button_test.c -lwiringPi
+// gcc -Wall -o button microphone_setup.o button_test.o -lwiringPi -lpthread -lasound
 
 // Run Instructions
 //sudo ./button
@@ -93,6 +95,12 @@ int main(void)
 	audio_data_t audio_data;
 
 	int pthread_rc = 0;
+	int mike_init = 0;
+
+	// Initialize the microphone
+	mike_init = initialize_microphone("plughw:1,0");
+	if (mike_init != 0)
+		printf("Unable to initialize the microphone.\n");
 
 	// Initialize wiringPi
 	wiringPiSetup();
@@ -116,10 +124,6 @@ int main(void)
 	// while loop to poll the button.
 	while(1)
 	{
-//		pin_state = digitalRead(GPIO_4_AKA_BUTTON1);
-//		if (pin_state == 0)
-//			printf("Button 1 is pressed!!\n");
-
 		// put a 250ms delay to give the processor some breathing room
 		delay (250);
 	}
