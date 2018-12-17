@@ -1,4 +1,4 @@
-#include "/home/pi/Desktop/RPi24-walkie-talkie/microphone_setup.h"
+#include "microphone_setup.h"
 
 int initialize_microphone(char * buf)
 {
@@ -38,6 +38,7 @@ int initialize_microphone(char * buf)
 	// Attempt to set the sampling rate to something close to desired
 	val = 8000;
 	snd_pcm_hw_params_set_rate_near(handle, hw_params, &val, &dir);
+	printf("Resultant sampling rate is: %d samples per second\n", val);
 
 	// Set the period size. The period is a collection of frames
         frames = 32;
@@ -54,13 +55,15 @@ int initialize_microphone(char * buf)
 
         // Determine the actual period size
   	snd_pcm_hw_params_get_period_size(hw_params, &frames, &dir);
+	printf("Resultant period size is: %d frames(or mono bytes)\n", frames);
 
-	// allocate a local buffer of data that can mirror what ALSA buffer contains
+	// allocate a local buffer of data that can mirror what our data period contains
   	size = frames * 1; /* 1 byte/sample(frame), 1 channel */
   	buffer = (char *) malloc(size);
 
 	// Get the ALSA buffer fill period time in microseconds
   	snd_pcm_hw_params_get_period_time(hw_params, &val, &dir);
+	printf("Resultant period time is: %d microseconds\n", val);
 //        loops = 5000000 / val;
 
 	return 0;
