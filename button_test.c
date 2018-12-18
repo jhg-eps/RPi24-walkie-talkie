@@ -49,18 +49,23 @@ void queue_access_callback(void)
 void * from_microphone(void * from_mike)
 {
 	audio_data_t * ad = (audio_data_t *)from_mike;
+	snd_pcm_uframes_t frames = 0;
 
 	int i = 0;
 
+	// Initialize the microphone data buffer
 	for (i = 0; i < BUF_SIZE; i++)
 	{
-		ad->from_microphone[i] = 'f';
+		ad->from_microphone[i] = 0x00;
 	}
 
+	// while loop to read from the microphone buffer
 	while(1)
 	{
-		delay(250);
-		printf("from_microphone: %c\n", ad->to_speaker[500]);
+		frames = read_microphone(&(ad->from_microphone[0]), PERIOD_SIZE);
+		if (frames != PERIOD_SIZE)
+			printf("Unable to read full mike buffer: %d\n", frames);
+		//printf("from_microphone: %c\n", ad->to_speaker[500]);
 	}
 
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
@@ -81,7 +86,7 @@ void * to_speaker(void * to_spkr)
 	while(1)
 	{
 		delay(250);
-		printf("to_speaker: %c\n", ad->from_microphone[500]);
+		//printf("to_speaker: %c\n", ad->from_microphone[500]);
 	}
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
 	pthread_exit(NULL);
@@ -100,7 +105,9 @@ int main(void)
 	// Initialize the microphone
 	mike_init = initialize_microphone("plughw:1,0");
 	if (mike_init != 0)
+	{
 		printf("Unable to initialize the microphone.\n");
+	}
 
 	// Initialize wiringPi
 	wiringPiSetup();
@@ -111,7 +118,6 @@ int main(void)
 
 	// Initialize the interrupt for the pin.
 	wiringPiISR(GPIO_4_AKA_BUTTON1, INT_EDGE_FALLING, &queue_access_callback);
-
 
 	// Hardware initialized, let's get the audio processing threads going.
 	pthread_rc = pthread_create(&from_microphone_t, NULL, from_microphone, &audio_data);

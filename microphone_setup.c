@@ -6,7 +6,6 @@ int initialize_microphone(char * buf)
 	int dir = 0;
 	int size = 0;
 	unsigned int val = 0;
-	snd_pcm_t* handle;
 	snd_pcm_hw_params_t* hw_params;
 	snd_pcm_uframes_t frames;
 	char * buffer;
@@ -41,7 +40,7 @@ int initialize_microphone(char * buf)
 	printf("Resultant sampling rate is: %d samples per second\n", val);
 
 	// Set the period size. The period is a collection of frames
-        frames = 32;
+        frames = PERIOD_SIZE;
 	snd_pcm_hw_params_set_period_size_near(handle, hw_params, &frames, &dir);
 
 	// Officially set the params for the audio driver
@@ -67,4 +66,10 @@ int initialize_microphone(char * buf)
 //        loops = 5000000 / val;
 
 	return 0;
+}
+
+// Read bytes from the microphone (interleaved samples)
+snd_pcm_sframes_t read_microphone(char * mike_buffer, snd_pcm_uframes_t frames)
+{
+	return snd_pcm_readi(handle, mike_buffer, frames);
 }

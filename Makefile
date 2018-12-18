@@ -59,8 +59,14 @@ install: rf24.o
 	ln -sf ${LIBDIR}/${LIBNAME} ${LIBDIR}/librf24.so
 	ldconfig
 
+# Button_test compilation and linking commands here
+button_test:
+	gcc -c microphone_setup.c button_test.c
+	gcc -Wall -o button microphone_setup.o button_test.o -lwiringPi -lpthread -lasound
+
 uninstall: 
 	rm ${LIBDIR}/${LIBNAME} ${LIBDIR}/librf24.so.1 ${LIBDIR}/librf24.so
 	ldconfig
 	
 .PHONY: clean lib all install uninstall
+
