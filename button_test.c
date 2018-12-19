@@ -72,7 +72,7 @@ void * from_microphone(void * from_mike)
 		// Update the ring buffer ctr_in/index
 		ad->fm_ctr_in += frames;
 		index = ad->fm_ctr_in & (BUF_SIZE - 1);  // This only works for buffer sizes that are multiples of 2.
-		printf("ctr_in == %d, index == %d\n", ad->fm_ctr_in, index);
+		//printf("ctr_in == %d, index == %d\n", ad->fm_ctr_in, index);
 	}
 
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
@@ -84,16 +84,38 @@ void * to_speaker(void * to_spkr)
  	audio_data_t * ad = (audio_data_t *)to_spkr;
 
 	int i = 0;
+	uint32_t index = 0;
 
+	// Initialize the speaker buffer.
 	for (i = 0; i < BUF_SIZE; i++)
 	{
-		ad->to_speaker[i] = 't';
+		ad->to_speaker[i] = 0x00;
 	}
 
+	// Simulate data being taken from the from_microphone buffer. This thread will be taking data from the to_speaker buffer
+	// in actuality, and that buffer will be getting filled by the main thread. This is proof-of-concept code here.
 	while(1)
 	{
-		delay(250);
-		//printf("to_speaker: %c\n", ad->from_microphone[500]);
+		// Steal data from the from_microphone_buffer
+		// Compare ad->fm_ctr_in ad->fm_ctr_out 
+		while (ad->fm_ctr_out < ad->fm_ctr_in) // catch up to the source
+		{
+			// access the fm_ctr_out-th member of ad->from_microphone
+			index = ad->fm_ctr_out & (BUF_SIZE - 1);
+			// Do something with that data member
+			ad->from_microphone[index] = 't';
+			//Update ad->fm_ctr_out.
+			ad->fm_ctr_out++;
+		}
+
+		// While stealing data from from_microphone, we may have caught up to ctr_in. Reset both to zero in that case so there is
+		// no counter overflow.
+		if (ad->fm_ctr_out == ad->fm_ctr_in)
+		{
+			ad->fm_ctr_out = 0;
+			ad->fm_ctr_in = 0; // There should really be a semaphore around this assignment statement.
+			printf("Consumer thread caught up with producer thread.\n");
+		}
 	}
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
 	pthread_exit(NULL);
