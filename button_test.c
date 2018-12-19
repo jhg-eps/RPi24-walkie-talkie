@@ -24,6 +24,8 @@
 typedef struct _data_buffers {
 	char from_microphone[BUF_SIZE];
 	char to_speaker[BUF_SIZE];
+	uint32_t fm_ctr_out;
+	uint32_t fm_ctr_in;
 } audio_data_t;
 
 
@@ -52,6 +54,7 @@ void * from_microphone(void * from_mike)
 	snd_pcm_uframes_t frames = 0;
 
 	int i = 0;
+	uint32_t index = 0;
 
 	// Initialize the microphone data buffer
 	for (i = 0; i < BUF_SIZE; i++)
@@ -62,10 +65,14 @@ void * from_microphone(void * from_mike)
 	// while loop to read from the microphone buffer
 	while(1)
 	{
-		frames = read_microphone(&(ad->from_microphone[0]), PERIOD_SIZE);
+		// Read the data
+		frames = read_microphone(&(ad->from_microphone[index]), PERIOD_SIZE);
 		if (frames != PERIOD_SIZE)
 			printf("Unable to read full mike buffer: %d\n", frames);
-		//printf("from_microphone: %c\n", ad->to_speaker[500]);
+		// Update the ring buffer ctr_in/index
+		ad->fm_ctr_in += frames;
+		index = ad->fm_ctr_in & (BUF_SIZE - 1);  // This only works for buffer sizes that are multiples of 2.
+		printf("ctr_in == %d, index == %d\n", ad->fm_ctr_in, index);
 	}
 
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
@@ -98,6 +105,9 @@ int main(void)
 	pthread_t from_microphone_t;
 	pthread_t to_speaker_t;
 	audio_data_t audio_data;
+
+	audio_data.fm_ctr_out = 0;
+	audio_data.fm_ctr_in = 0;
 
 	int pthread_rc = 0;
 	int mike_init = 0;
