@@ -35,7 +35,7 @@ int initialize_microphone(char * buf)
 	snd_pcm_hw_params_set_channels(handle, hw_params, 1);
 
 	// Attempt to set the sampling rate to something close to desired
-	val = 8000;
+	val = 10000;
 	snd_pcm_hw_params_set_rate_near(handle, hw_params, &val, &dir);
 	printf("Resultant sampling rate is: %d samples per second\n", val);
 

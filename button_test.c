@@ -72,7 +72,7 @@ void * from_microphone(void * from_mike)
 		// Update the ring buffer ctr_in/index
 		ad->fm_ctr_in += frames;
 		index = ad->fm_ctr_in & (BUF_SIZE - 1);  // This only works for buffer sizes that are multiples of 2.
-		//printf("ctr_in == %d, index == %d\n", ad->fm_ctr_in, index);
+		printf("ctr_in == %d, index == %d\n", ad->fm_ctr_in, index);
 	}
 
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
