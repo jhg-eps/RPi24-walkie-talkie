@@ -9,4 +9,4 @@ snd_pcm_t* handle;
 
 // Functions
 int initialize_microphone(char * buf);
-snd_pcm_sframes_t read_microphone(char * mike_buffer, snd_pcm_uframes_t frames);
+snd_pcm_sframes_t read_microphone(int16_t * mike_buffer, snd_pcm_uframes_t frames);

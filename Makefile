@@ -61,8 +61,8 @@ install: rf24.o
 
 # Button_test compilation and linking commands here
 button_test:
-	gcc -c microphone_setup.c button_test.c
-	gcc -Wall -o button microphone_setup.o button_test.o -lwiringPi -lpthread -lasound
+	gcc -g -c speaker.c microphone.c button_test.c
+	gcc -Wall -g -o button microphone.o speaker.o button_test.o -lwiringPi -lpthread -lasound
 
 uninstall: 
 	rm ${LIBDIR}/${LIBNAME} ${LIBDIR}/librf24.so.1 ${LIBDIR}/librf24.so

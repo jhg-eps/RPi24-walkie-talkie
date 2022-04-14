@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "microphone_setup.h"
-
+#include "microphone.h"
+#include "speaker.h"
 // Compilation Instructions
 // gcc -Wall -o button microphone_setup.o button_test.o -lwiringPi -lpthread -lasound
 
@@ -22,13 +22,14 @@
 #define BUF_SIZE 1024
 
 typedef struct _data_buffers {
-	char from_microphone[BUF_SIZE];
-	char to_speaker[BUF_SIZE];
+	int16_t from_microphone[BUF_SIZE];
+	int16_t to_speaker[BUF_SIZE];
 	uint32_t fm_ctr_out;
 	uint32_t fm_ctr_in;
 } audio_data_t;
 
 
+// Callback for the ISR. When the PTT (push-to-talk) button is pressed, this function fires off.
 void queue_access_callback(void)
 {
 	// do software debouncing, we are waiting for....??
@@ -48,11 +49,13 @@ void queue_access_callback(void)
 	}
 }
 
+// 
 void * from_microphone(void * from_mike)
 {
 	audio_data_t * ad = (audio_data_t *)from_mike;
 	snd_pcm_uframes_t frames = 0;
 
+        printf("mike thread: address of datastruct: %p\n", ad);
 	int i = 0;
 	uint32_t index = 0;
 
@@ -63,18 +66,21 @@ void * from_microphone(void * from_mike)
 	}
 
 	// while loop to read from the microphone buffer
+	// PERIOD_SIZE = 32
 	while(1)
 	{
 		// Read the data
+		//printf("mike_thread: producer ring buffer index before pulling new data: %d\n",index);
 		frames = read_microphone(&(ad->from_microphone[index]), PERIOD_SIZE);
 		if (frames != PERIOD_SIZE)
 			printf("Unable to read full mike buffer: %d\n", frames);
 		// Update the ring buffer ctr_in/index
 		ad->fm_ctr_in += frames;
 		index = ad->fm_ctr_in & (BUF_SIZE - 1);  // This only works for buffer sizes that are multiples of 2.
-		printf("ctr_in == %d, index == %d\n", ad->fm_ctr_in, index);
+	//	printf("mike_thread: ctr_in == %d, index == %d\n", ad->fm_ctr_in, index);
 	}
 
+	printf("Exiting microphone producer thread.\n");
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
 	pthread_exit(NULL);
 }
@@ -82,7 +88,7 @@ void * from_microphone(void * from_mike)
 void * to_speaker(void * to_spkr)
 {
  	audio_data_t * ad = (audio_data_t *)to_spkr;
-
+        printf("speaker thread: address of datastruct: %p\n", ad);
 	int i = 0;
 	uint32_t index = 0;
 
@@ -91,22 +97,44 @@ void * to_speaker(void * to_spkr)
 	{
 		ad->to_speaker[i] = 0x00;
 	}
-
+        
+	char * buffer;
+	int transfer_size = 0;
+	// size = frames * 2; /* 2 bytes/sample, 1 channels */
+        // buffer = (char *) malloc(size);
 	// Simulate data being taken from the from_microphone buffer. This thread will be taking data from the to_speaker buffer
 	// in actuality, and that buffer will be getting filled by the main thread. This is proof-of-concept code here.
 	while(1)
 	{
 		// Steal data from the from_microphone_buffer
 		// Compare ad->fm_ctr_in ad->fm_ctr_out 
-		while (ad->fm_ctr_out < ad->fm_ctr_in) // catch up to the source
-		{
+
+		// Ideally we'd want to gather up all the data from ad->fm_ptr_in to ad->fm_ptr_out for a payload, but if that data segment is >32 bytes, we can't transmit it all.
+		// Cap the to-be-transferred payload at 32 bytes.
+		if(2*(ad->fm_ctr_in - ad->fm_ctr_out) < 32)
+			printf("data backlog is %d bytes\n", 2*(ad->fm_ctr_in - ad->fm_ctr_out));
+               transfer_size = 2*(ad->fm_ctr_in - ad->fm_ctr_out) <= 32 ? 2*(ad->fm_ctr_in - ad->fm_ctr_out) : 32;
+	       //buffer = (char *)malloc(transfer_size);  // each sample is 16 bits, which is equal to 2 chars 
+	       i = 0;
+		while (ad->fm_ctr_out < ad->fm_ctr_in) // catch up to the source. What if fm_ctr_out is thousands less than fm_ctr_in?
+		{                                      // Then we would write a huuuge buffer to the speaker...
+			//printf("speaker_thread: ctr_in %d and ctr_out %d \n", ad->fm_ctr_in, ad->fm_ctr_out);
 			// access the fm_ctr_out-th member of ad->from_microphone
 			index = ad->fm_ctr_out & (BUF_SIZE - 1);
-			// Do something with that data member
-			ad->from_microphone[index] = 't';
+			
+			
+			// squirrel the data away into a buffer to be stuffed into the PCM library
+			//buffer[i] = ad->from_microphone[index];
+			i++;
+			
 			//Update ad->fm_ctr_out.
 			ad->fm_ctr_out++;
+			//printf("speaker thread: ctr_in %d and ctr_out %d \n", ad->fm_ctr_in, ad->fm_ctr_out);
 		}
+		if (transfer_size != 0)
+			printf("speaker thread: fm_ctr_out caught up to fm_ctr_in, buffer size is %d bytes\n", transfer_size);
+               //write_speaker(buffer, (snd_pcm_uframes_t)transfer_size);
+	       //free(buffer);
 
 		// While stealing data from from_microphone, we may have caught up to ctr_in. Reset both to zero in that case so there is
 		// no counter overflow.
@@ -114,7 +142,7 @@ void * to_speaker(void * to_spkr)
 		{
 			ad->fm_ctr_out = 0;
 			ad->fm_ctr_in = 0; // There should really be a semaphore around this assignment statement.
-			printf("Consumer thread caught up with producer thread.\n");
+		//	printf("Consumer thread caught up with producer thread.\n");
 		}
 	}
 	// Make sure the thread exits cleanly, can use this return code in pthread_join();
@@ -134,11 +162,32 @@ int main(void)
 	int pthread_rc = 0;
 	int mike_init = 0;
 
+	snd_pcm_t * speaker_handle;
+
 	// Initialize the microphone
-	mike_init = initialize_microphone("plughw:1,0");
+	// arecord -L will show us a sound recording device entry like: plughw:CARD=Device,DEV=0
+	// From that, we would get plughw:Device,0 (i.e, <CARD NAME>,<DEVICE #>)
+	//C-Media Electronics Inc. USB PnP Sound Device at usb-0000:01:00.0-1.1, full spe : USB Audio
+       // looking at /proc/asound/card2/stream0
+// Capture:
+//   Status: Stop
+//   Interface 1
+//     Altset 1
+//     Format: S16_LE
+//     Channels: 1
+//     Endpoint: 2 IN (ADAPTIVE)
+//     Channel map: MONO
+
+	mike_init = initialize_microphone("plughw:Device,0");
 	if (mike_init != 0)
 	{
 		printf("Unable to initialize the microphone.\n");
+	}
+
+	speaker_handle = initialize_speaker("plughw:CARD=Headphones,DEV=0");
+	if (NULL == speaker_handle)
+	{
+		printf("Unable to initialize the speaker!");
 	}
 
 	// Initialize wiringPi
