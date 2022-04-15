@@ -20,10 +20,11 @@
 #define LOGIC_LOW 0
 #define LOGIC_HIGH 1
 #define BUF_SIZE 1024
+#define SPKR_BUF_SIZE 512
 
 typedef struct _data_buffers {
 	int16_t from_microphone[BUF_SIZE];
-	int16_t to_speaker[BUF_SIZE];
+	int16_t to_speaker[SPKR_BUF_SIZE];
 	uint32_t fm_ctr_out;
 	uint32_t fm_ctr_in;
 } audio_data_t;
@@ -98,8 +99,11 @@ void * to_speaker(void * to_spkr)
 		ad->to_speaker[i] = 0x00;
 	}
         
-	char * buffer;
+	int16_t * buffer;
 	int transfer_size = 0;
+	int speaker_buffer_counter = 0;
+	int speaker_buffer_highwater_mark = 0;
+
 	// size = frames * 2; /* 2 bytes/sample, 1 channels */
         // buffer = (char *) malloc(size);
 	// Simulate data being taken from the from_microphone buffer. This thread will be taking data from the to_speaker buffer
@@ -111,10 +115,13 @@ void * to_speaker(void * to_spkr)
 
 		// Ideally we'd want to gather up all the data from ad->fm_ptr_in to ad->fm_ptr_out for a payload, but if that data segment is >32 bytes, we can't transmit it all.
 		// Cap the to-be-transferred payload at 32 bytes.
-		if(2*(ad->fm_ctr_in - ad->fm_ctr_out) < 32)
+		//
+		if (0 == (ad->fm_ctr_in - ad->fm_ctr_out)) // No data to process, go back to the beginning of the loop
+			continue;
+		if((ad->fm_ctr_in - ad->fm_ctr_out) < 32)   // if we only have 32 or less data frames to relay...
 			printf("data backlog is %d bytes\n", 2*(ad->fm_ctr_in - ad->fm_ctr_out));
-               transfer_size = 2*(ad->fm_ctr_in - ad->fm_ctr_out) <= 32 ? 2*(ad->fm_ctr_in - ad->fm_ctr_out) : 32;
-	       //buffer = (char *)malloc(transfer_size);  // each sample is 16 bits, which is equal to 2 chars 
+               transfer_size = (ad->fm_ctr_in - ad->fm_ctr_out) <= 32 ? (ad->fm_ctr_in - ad->fm_ctr_out) : 32;
+	       buffer = (int16_t *)malloc(transfer_size);  // each sample is 16 bits, which is equal to 2 chars 
 	       i = 0;
 		while (ad->fm_ctr_out < ad->fm_ctr_in) // catch up to the source. What if fm_ctr_out is thousands less than fm_ctr_in?
 		{                                      // Then we would write a huuuge buffer to the speaker...
@@ -124,17 +131,33 @@ void * to_speaker(void * to_spkr)
 			
 			
 			// squirrel the data away into a buffer to be stuffed into the PCM library
-			//buffer[i] = ad->from_microphone[index];
+			buffer[i] = ad->from_microphone[index];
 			i++;
 			
 			//Update ad->fm_ctr_out.
 			ad->fm_ctr_out++;
 			//printf("speaker thread: ctr_in %d and ctr_out %d \n", ad->fm_ctr_in, ad->fm_ctr_out);
 		}
-		if (transfer_size != 0)
-			printf("speaker thread: fm_ctr_out caught up to fm_ctr_in, buffer size is %d bytes\n", transfer_size);
-               //write_speaker(buffer, (snd_pcm_uframes_t)transfer_size);
-	       //free(buffer);
+		//printf("speaker thread: fm_ctr_out caught up to fm_ctr_in, buffer size is %d bytes\n", transfer_size);            
+
+		// This if-else block fills up the 512-frame (16 chunks of 32-frame packets) buffer for the speaker. The ALSA speaker driver doesn't support a period size smaller than 512,
+		// while its USB microphone driver supports a 32-frame period size. 
+		if (speaker_buffer_counter <= 15)
+		{
+			int i = 0;
+			for (i = 0; i < 32; i++)
+			{
+				ad->to_speaker[32*speaker_buffer_counter + i] = buffer[i];
+				speaker_buffer_highwater_mark = 32*speaker_buffer_counter + i;
+			}
+			speaker_buffer_counter += 1;
+		} else {
+			printf("speaker thread: Have a full speaker payload ready: 32*%d bytes, highwater mark %d\n", speaker_buffer_counter, speaker_buffer_highwater_mark);            
+			write_speaker(ad->to_speaker, (snd_pcm_uframes_t)512);   // Have a feeling this isn't thread safe and ALSA is choking. Need to re-compile for thread-safe?
+			speaker_buffer_counter = 0;                                  // Or just make a copy of to_speaker and pass it to write_speaker
+			speaker_buffer_highwater_mark = 0;
+		}
+	 	free(buffer);
 
 		// While stealing data from from_microphone, we may have caught up to ctr_in. Reset both to zero in that case so there is
 		// no counter overflow.

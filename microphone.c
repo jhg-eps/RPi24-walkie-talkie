@@ -90,5 +90,31 @@ int initialize_microphone(char * buf)
 // Read bytes from the microphone (interleaved samples)
 snd_pcm_sframes_t read_microphone(int16_t * mike_buffer, snd_pcm_uframes_t frames)
 {
-	return snd_pcm_readi(handle, mike_buffer, frames);
+	snd_pcm_sframes_t rc;
+	rc = snd_pcm_readi(handle, mike_buffer, frames);
+	
+	if (-EBADFD == rc)
+		printf("ROUTE 1\n");
+	if (-EPIPE == rc)
+		printf("ROUTE 2\n");
+	if (-ESTRPIPE == rc)
+		printf("ROUTE 3\n");
+
+	return rc;
+#if 0
+int rc = 0;
+   rc = snd_pcm_writei(handle, buffer, frames);
+    if (rc == -EPIPE) {
+      /* EPIPE means underrun */
+      fprintf(stderr, "underrun occurred\n");
+      snd_pcm_prepare(handle);
+    } else if (rc < 0) {
+      fprintf(stderr,
+              "error from writei: %s\n",
+              snd_strerror(rc));
+    }  else if (rc != (int)frames) {
+      fprintf(stderr,
+              "short write, write %d frames\n", rc);
+    }
+#endif
 }

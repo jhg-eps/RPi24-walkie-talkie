@@ -104,7 +104,7 @@ snd_pcm_t * initialize_speaker(char * buf)
   return handle;
 }
 
-void write_speaker(char * buffer, snd_pcm_uframes_t frames)
+void write_speaker(int16_t * buffer, snd_pcm_uframes_t frames)
 {
    int rc = 0;
    rc = snd_pcm_writei(handle, buffer, frames);
